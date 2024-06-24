@@ -1,0 +1,15 @@
+{
+  "file": [
+    {
+      "id": "18_C",
+      "buffer": "FORMIC_ACID_1M",
+      "temperature": "20",
+      "ionizationMode": "POSITIVE",
+      "polarity": "DIRECT",
+      "ref_compound_id_RMT": "null",
+      "capillaryLength": "800",
+      "voltage": "30",
+      "mtEOF": "16.05"
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "file": [
+    {
+      "id": "18_C",
+      "buffer": "FORMIC_ACID_1M",
+      "temperature": "20",
+      "ionizationMode": "POSITIVE",
+      "polarity": "DIRECT",
+      "ref_compound_id_RMT": "null",
+      "capillaryLength": "800",
+      "voltage": "30",
+      "mtCompoundA": "3.76",
+      "effMobCompoundA": "3999.77314860026",
+      "mtCompoundB": "15.44 ",
+      "effMobCompoundB": "25.6845198802883"
+    }
+  ]
+}
