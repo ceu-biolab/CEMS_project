@@ -69,6 +69,26 @@ public class ChemSpiderREST {
         }
     }
 
+    public static String getInchiFromSmiles(String smiles) throws IOException, WrongRequestException {
+        try {
+            String CHEMSPIDER_SERVICE_SMILES_TO_INCHI = "https://www.chemspider.com/InChI.asmx/SMILESToInChI";
+            Content content = Request.post(CHEMSPIDER_SERVICE_SMILES_TO_INCHI).
+                    bodyForm(Form.form().add("smiles", smiles).build())
+                    .execute().returnContent();
+            String responseString = content.asString();
+            // String newLine = System.getProperty("line.separator");
+            String newLine = "\r\n";
+            String htmlToRemove1 = "(.)*" + newLine;
+            String htmlToRemove2 = "<string xmlns=\"http://www.chemspider.com/\">";
+            String htmlToRemoveEnd = "</string>";
+            String inchi_key = responseString.replaceFirst(htmlToRemove1, "");
+            inchi_key = inchi_key.replace(htmlToRemove2, "").replace(htmlToRemoveEnd, "");
+            return inchi_key;
+        } catch (HttpResponseException re) {
+            throw new WrongRequestException("Check SMILES to generate the inchi");
+        }
+    }
+
     public static String getMolFromInchi(String inchi) throws IOException, WrongRequestException {
         Response response = Request.post(CHEMSPIDER_SERVICE_INCHI_TO_MOL).
                 bodyForm(Form.form().add("inchi", inchi).build())
@@ -205,6 +225,15 @@ public class ChemSpiderREST {
             } catch (WrongRequestException ex) {
                 System.out.println("ex: " + ex);
             }
+            try {
+                String smiles = "C(CC/C=C\\C/C=C\\CC1OC1C/C=C\\C/C=C\\C/C=C\\CC)(=O)O";
+                String inchi = getInchiFromSmiles(smiles);
+                System.out.println(smiles);
+                System.out.println(inchi);
+            } catch (WrongRequestException ex) {
+                System.out.println("ex: " + ex);
+            }
+
             String mol;
             try {
                 mol = getMolFromInchi(inchi_input);
