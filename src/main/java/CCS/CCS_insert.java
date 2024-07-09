@@ -74,7 +74,7 @@ public class CCS_insert {
             while (rowIterator.hasNext()) {
                 Row row = rowIterator.next();
 
-                // Get the header row and find the 'SMILES' and 'Adduct' column index
+                // Get the header row and find the column index
                 if (row.getRowNum() == 0) {
                     for (Cell cell : row) {
                         if (cell.getCellType() == CellType.STRING) {
@@ -118,6 +118,11 @@ public class CCS_insert {
                                 ? averageExperimentalCCSCell.getNumericCellValue() : null;
                         Double charge = chargeCell != null && chargeCell.getCellType() == CellType.NUMERIC
                                 ? chargeCell.getNumericCellValue() : null;
+
+                        // Process adduct to remove brackets and trailing ionization mode
+                        if (adduct != null) {
+                            adduct = processAdduct(adduct);
+                        }
 
                         //Get identifier
                         Identifier identifier = fetchIdentifierFromChemSpider(smiles);
@@ -231,6 +236,18 @@ public class CCS_insert {
         } catch (IOException | WrongRequestException e) {
             e.printStackTrace();
         }
+    }
+
+    private static String processAdduct(String adduct) {
+        // Remove brackets and trailing '+' or '-'
+        if (adduct.startsWith("[") && adduct.endsWith("]")) {
+            adduct = adduct.substring(1, adduct.length() - 1);
+        }
+        // Remove trailing '+' or '-' if present
+        if (adduct.endsWith("+") || adduct.endsWith("-")) {
+            adduct = adduct.substring(0, adduct.length() - 1);
+        }
+        return adduct;
     }
 
     public static void checkCompoundsTable(Connection CMMConnection, int pc_id, String compound, String smiles) throws SQLException {
