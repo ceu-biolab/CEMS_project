@@ -239,16 +239,12 @@ public class CCS_insert {
     }
 
     private static String processAdduct(String adduct) {
-        // Remove brackets and trailing '+' or '-'
-        if (adduct.startsWith("[") && adduct.endsWith("]")) {
-            adduct = adduct.substring(1, adduct.length() - 1);
-        }
-        // Remove trailing '+' or '-' if present
-        if (adduct.endsWith("+") || adduct.endsWith("-")) {
-            adduct = adduct.substring(0, adduct.length() - 1);
+        if (adduct.startsWith("[") && (adduct.endsWith("]+") || adduct.endsWith("]-"))) {
+            adduct = adduct.substring(1, adduct.length() - 2); // remove brackets and trailing sign
         }
         return adduct;
     }
+
 
     public static void checkCompoundsTable(Connection CMMConnection, int pc_id, String compound, String smiles) throws SQLException {
         String checkCompoundsSql = "SELECT compound_id FROM compounds WHERE compound_id = ?";
@@ -414,10 +410,6 @@ public class CCS_insert {
         mapChemAlphabetTMP.put("ALLD", 5);
         MAPCHEMALPHABET = Collections.unmodifiableMap(mapChemAlphabetTMP);
     }
-    public static int getIntChemAlphabet(String inputChemAlphabet) {
-        int intChemAlphabet = MAPCHEMALPHABET.getOrDefault(inputChemAlphabet, 4);
-        return intChemAlphabet;
-    }
 
     private static String detectChargeType(IAtomContainer molecule) {
         int charge = AtomContainerManipulator.getTotalFormalCharge(molecule);
@@ -427,24 +419,6 @@ public class CCS_insert {
     private static int detectChargeNumber(IAtomContainer molecule) {
         return AtomContainerManipulator.getTotalFormalCharge(molecule);
     }
-    public static String detectCASId(IAtomContainer molecule) {
-        // Example implementation using CDK to get CAS ID
-        String casId = molecule.getProperty("CAS Number"); // Assuming CAS Number is a property in the molecule
-        return casId != null ? casId : "Not found";
-    }
-    public static String detectCompoundType(IAtomContainer molecule) {
-        // Example implementation to detect compound type
-        String compoundType = molecule.getProperty("Compound Type"); // Example property
-        return compoundType != null ? compoundType : "Unknown";
-    }
-    public static String detectCompoundStatus(IAtomContainer molecule) {
-        // Example implementation to detect compound status
-        String compoundStatus = molecule.getProperty("Compound Status"); // Example property
-        return compoundStatus != null ? compoundStatus : "Unknown";
-    }
-
-
-
 
     public static Identifier fetchIdentifierFromChemSpider(String smiles) throws IOException, WrongRequestException {
         ChemSpiderREST chemSpider = new ChemSpiderREST();
@@ -452,131 +426,4 @@ public class CCS_insert {
         String inchiKey = chemSpider.getINCHIKeyFromInchi(inchi);
         return new Identifier(inchi, inchiKey, smiles);
     }
-
-    public static void writeToFile(Integer id, String outputFilePath) {
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(outputFilePath, true))) {
-            writer.write(String.valueOf(id)); // Convert Integer to String explicitly
-            writer.newLine();
-        } catch (IOException e) {
-            System.err.println("Error writing to file: " + e.getMessage());
-        }
-    }
-
-    public static void removeDuplicatesFromFile(String inputFilePath, String outputFilePath) throws IOException {
-        Set<Integer> uniqueNumbers = new HashSet<>();
-
-        // Read from the input file
-        try (BufferedReader reader = new BufferedReader(new FileReader(inputFilePath))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                Integer number = Integer.parseInt(line.trim());
-                uniqueNumbers.add(number);  // Adding to HashSet, duplicates are removed here
-            }
-        }
-
-        // Write unique numbers to the output file
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(outputFilePath))) {
-            for (Integer number : uniqueNumbers) {
-                writer.write(number.toString());
-                writer.newLine();
-            }
-        }
-    }
-
-    public static List<String> extractSmilesFromExcel(String filePath) throws IOException {
-        List<String> smilesList = new ArrayList<>();
-
-        try (FileInputStream file = new FileInputStream(filePath);
-             Workbook workbook = WorkbookFactory.create(file)) { // Use WorkbookFactory to handle both XLS and XLSX formats
-
-            int numberOfSheets = workbook.getNumberOfSheets();
-
-            // Iterate through each sheet
-            for (int i = 0; i < numberOfSheets; i++) {
-                Sheet sheet = workbook.getSheetAt(i);
-                int smilesColumnIndex = -1;
-
-                // Iterate through each row
-                Iterator<Row> rowIterator = sheet.iterator();
-                while (rowIterator.hasNext()) {
-                    Row row = rowIterator.next();
-
-                    // Get the header row and find the 'SMILES' column index
-                    if (row.getRowNum() == 0) {
-                        for (Cell cell : row) {
-                            if (cell.getCellType() == CellType.STRING && "SMILES".equalsIgnoreCase(cell.getStringCellValue().trim())) {
-                                smilesColumnIndex = cell.getColumnIndex();
-                                break;
-                            }
-                        }
-                        if (smilesColumnIndex == -1) {
-                            throw new IllegalArgumentException("The 'SMILES' column does not exist in the provided Excel file.");
-                        }
-                    } else {
-                        // Get the 'SMILES' value from the column
-                        Cell cell = row.getCell(smilesColumnIndex);
-                        if (cell != null && cell.getCellType() == CellType.STRING) {
-                            smilesList.add(cell.getStringCellValue());
-                        }
-                    }
-                }
-            }
-
-        } catch (IOException | EncryptedDocumentException e) {
-            e.printStackTrace();
-        }
-
-        return smilesList;
-    }
-
-    public static List<String> extractCleanAdductsFromExcel(String filePath) {
-        List<String> cleanAdducts = new ArrayList<>();
-
-        try (FileInputStream file = new FileInputStream(filePath);
-             Workbook workbook = WorkbookFactory.create(file)) { // Use WorkbookFactory to handle both XLS and XLSX formats
-
-            int numberOfSheets = workbook.getNumberOfSheets();
-
-            // Iterate through each sheet
-            for (int i = 0; i < numberOfSheets; i++) {
-                Sheet sheet = workbook.getSheetAt(i);
-                int smilesColumnIndex = -1;
-
-                // Iterate through each row
-                Iterator<Row> rowIterator = sheet.iterator();
-                while (rowIterator.hasNext()) {
-                    Row row = rowIterator.next();
-
-                    // Get the header row and find the 'Adduct' column index
-                    if (row.getRowNum() == 0) {
-                        for (Cell cell : row) {
-                            if (cell.getCellType() == CellType.STRING && "Adduct".equalsIgnoreCase(cell.getStringCellValue().trim())) {
-                                smilesColumnIndex = cell.getColumnIndex();
-                                break;
-                            }
-                        }
-                        if (smilesColumnIndex == -1) {
-                            throw new IllegalArgumentException("The 'Adduct' column does not exist in the provided Excel file.");
-                        }
-                    } else {
-                        // Get the 'Adduct' value from the column
-                        Cell cell = row.getCell(smilesColumnIndex);
-                        if (cell != null && cell.getCellType() == CellType.STRING) {
-                            String adductValue = cell.getStringCellValue().trim();
-                            // Remove brackets and charge (positive or negative)
-                            adductValue = adductValue.replaceAll("\\[([^\\]]+)\\].*", "$1");
-
-                            cleanAdducts.add(adductValue);
-                        }
-                    }
-                }
-            }
-
-        } catch (IOException | EncryptedDocumentException e) {
-            e.printStackTrace();
-        }
-
-        return cleanAdducts;
-    }
-
 }
