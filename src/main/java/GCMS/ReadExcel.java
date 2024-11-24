@@ -9,18 +9,10 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
-/*
-TODO
-3_ Esto deberia estar en carpeta utilities?
-4_ funcion readexcel solo funciona para excel "Calculo_RI_Alkanes.xlsx"
-5_ Crear clase que contenga la lista de compoundGC o hacerlo de otra menra?-> pensarlo  mas
- */
-
 public class ReadExcel {
-    public static List<CompoundGC> readexcel (String direxcel) throws IOException{
+    public static List<CompoundGC> readexcelalkanes (String direxcel) throws IOException{
 
         FileInputStream fis = new FileInputStream((direxcel));
         Workbook wb = new XSSFWorkbook(fis); //XSSF es el usado en los archivos xlsx
@@ -28,11 +20,11 @@ public class ReadExcel {
         int numsheets = wb.getNumberOfSheets();
 
         int i;
-        String infocelltxt;
+        String infocelltxt = "";
         double infocellnum;
         CompoundGC compoundgc = null;
         List<CompoundGC> compoundgcList = null;
-        compoundgcList = new ArrayList<>();//Usar LinkedList??
+        compoundgcList = new ArrayList<>();
 
         //Para este excel no haria falta leer el numero de sheets ya que sabemos que solo tiene una
         for (i = 0; i < numsheets; i++) { //for(Sheet sheet : wb)
@@ -51,29 +43,6 @@ public class ReadExcel {
                             infocellnum = cell.getNumericCellValue();
                             compoundgc.setRT(infocellnum);
                         }
-
-                        /*
-                        * esto est bien si no se el contenido de mi excel
-                        * PEro sabemos que:
-                            * primera columna es nombre
-                            * segunda es RI
-                            * tercera es RT
-                        */
-                        /*switch (cell.getCellType()) {
-                            case STRING: {
-                                infocelltxt = cell.getStringCellValue();
-                                //System.out.println("INFO CELL: " + infocelltxt);
-                                System.out.print(infocelltxt);
-                                break;
-                            }
-                            case NUMERIC: {
-                                infocellnum = cell.getNumericCellValue();
-                                //System.out.println("INFO CELL: " + infocellnum);
-                                System.out.print(infocellnum);
-                                break;
-                            }
-                        }
-                        System.out.print(" | ");*/
                     }
                     compoundgcList.add(compoundgc);
                 }
@@ -86,14 +55,13 @@ public class ReadExcel {
     }
 
     public static void main(String[] args) {
-        String filexcel = "C:\\Users\\marta\\Documents\\Uni\\i. biomedica\\4\\TFG\\GCMS\\Calculo_RI_Alkanes.xlsx";
+        String filexcel = "C:\\Users\\marta\\Documents\\Uni\\Biomedica_TFG\\Calculo_RI_Alkanes.xlsx";
         try {
-            List<CompoundGC> compoundgcList = readexcel (filexcel);
-            Iterator <CompoundGC> itcompoundgc = compoundgcList.iterator();
-            System.out.println("Lista: ");
-            while(itcompoundgc.hasNext()){
-                System.out.println("Elemento : "+itcompoundgc.next());
-            }
+            List<CompoundGC> compoundgcList = readexcelalkanes(filexcel);
+            GCMS gcms = new GCMS(compoundgcList);
+
+            //System.out.println("List Size: "+gcms.getCompoundgcList().size());
+            System.out.println("INFO EXCEL ALKANES:"+gcms.toString());
 
         } catch (IOException e) {
             throw new RuntimeException(e);
