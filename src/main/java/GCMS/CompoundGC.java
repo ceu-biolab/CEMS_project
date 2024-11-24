@@ -47,8 +47,8 @@ public class CompoundGC {
 
     @Override
     public String toString() {
-        return " name=" + name +
-                ", RI=" + RI +
-                ", RT=" + RT;
+        return "name=" + this.name +
+                ", RI=" + this.RI +
+                ", RT=" + this.RT;
     }
 }
