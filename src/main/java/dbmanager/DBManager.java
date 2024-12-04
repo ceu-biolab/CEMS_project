@@ -34,6 +34,7 @@ import static utilities.FileIO.readStringFromFile;
 /**
  * @author alberto.gildelafuent
  */
+
 public class DBManager {
 
     protected Connection connection;
