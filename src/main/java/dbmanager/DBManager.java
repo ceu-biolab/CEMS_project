@@ -11,12 +11,10 @@ import cems_project.CEMSCompound;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import exceptions.IonizationTypeNotFound;
 import exceptions.WrongRequestException;
 import experimental_properties.BufferType;
 import experimental_properties.IonizationModeType;
 import experimental_properties.PolarityType;
-import experimental_properties.SampleType;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -40,7 +38,6 @@ public class DBManager {
 
     protected Connection connection;
     protected Statement statement;
-
     /**
      * Method to connect to the database
      *
@@ -51,81 +48,73 @@ public class DBManager {
      */
     public void connectToDB(String bd, String usuario, String clave) {
         try {
-            // MySQL driver registered
-            //DriverManager.registerDriver(new org.gjt.mm.mysql.Driver());
-
-            // get or open the DatabaseConnection
             connection = DriverManager.getConnection(bd, usuario, clave);       //getConnection is a static method
             statement = this.connection.createStatement();
-            //create an statement, pass the query and execute
         } catch (SQLException ex) {
             Logger.getLogger(DBManager.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 
-    //----------------------------------------------------------------------------------------------------------
-    //métodos nuevos:
-    public void insertMetabolite(CEMSCompound m, CEMSExperimentalConditions c) {
-
-        //select id donde coincida la INCHI
+    public int getCompoundIdFromInchi(String inchi) {
         String sql = "SELECT compound_id FROM compound_identifiers WHERE inchi LIKE ?";
         try {
             PreparedStatement ps = this.connection.prepareStatement(sql);
-            ps.setString(1, m.getINCHI());
+            ps.setString(1, inchi);
             int compound_id = getInt(ps);
-            System.out.println("\ncompound_id: " + compound_id);
-
-            if (compound_id == 0) {
-                //tenemos que insertar toda la información correspondiente:
-                System.out.println("El metabolito no estaba insertado. Lo insertamos.");
-                //metemos el compuesto y guardamos el id asignado por MySQL
-                compound_id = insertCompound(m);
-
-                //insertamos la estructura:  INCHI, INCHI_KEY Y SMILES (hay que calcularlo)
-                insertCompoundIdentifiers(compound_id, m.getINCHI());
-            }
-
-            // metemos las referencias a la estructura OPTIONALLY, CHECK IF THEY ALREADY EXISTS
-            //if they do not exist, we do not have to insert anything
-            //puede haber más de una referencia ya que la clave primaria está compuesta por 2 valores
-            insertHMDB(compound_id, m.getRefHMDB());
-            insertPC(compound_id, m.getRefPubChem());
-
-            // SELECT CEEXPPROP ID FROM EXPERIMENTAL PROPERTIES NEG, INVERSO, TEMP y BUFFER
-            sql = ConstantQueries.SELECT_CE_EXP_PROP;
-            ps = this.connection.prepareStatement(sql);
-            ps.setInt(1, BufferType.MAPBUFFERTYPES.get(c.getBuffer()));
-            ps.setInt(2, c.getTemperature());
-            ps.setInt(3, PolarityType.MAPPOLARITYTYPE.get(c.getPolarity()));
-            int ce_ex_prop_id = getInt(ps);
-            //System.out.println("ce_ex_prop_id: " + ce_ex_prop_id);
-
-            Integer ce_eff_mob_id = get_ce_eff_mob_id(compound_id, ce_ex_prop_id);
-            // INSERT EFF MOB
-            if (ce_eff_mob_id == null) {
-                ce_eff_mob_id = insertCeEffMob(compound_id, ce_ex_prop_id, m);  //java.sql.SQLIntegrityConstraintViolationException: Duplicate entry
-            }//System.out.println("ce_eff_mob_id" + ce_eff_mob_id);
-
-            // INSERT METADATA WITH METH SULFONE AND PARACETAMOL
-            insertCeExpPropMet(ce_eff_mob_id, m, c);       //java.sql.SQLIntegrityConstraintViolationException: Cannot add or update a child row
-
-            // INSERT FRAGMENTS
-            //insertamos los fragmentos
-            List<Fragment> fragments = m.getFragments();
-            //por cada fragment de la lista
-            insertCompCeProdIon(compound_id, ce_eff_mob_id, fragments);     //java.sql.SQLIntegrityConstraintViolationException: Cannot add or update a child row
-
+            return compound_id;
         } catch (SQLException ex) {
             Logger.getLogger(DBManager.class.getName()).log(Level.SEVERE, null, ex);
         }
+        return 0;
+    }
+
+    public int getCompoundIdFromInchiKey(String inchiKey) {
+        String sql = "SELECT compound_id FROM compound_identifiers WHERE inchi_key LIKE ?";
+        try {
+            PreparedStatement ps = this.connection.prepareStatement(sql);
+            ps.setString(1, inchiKey);
+            int compound_id = getInt(ps);
+            return compound_id;
+        } catch (SQLException ex) {
+            Logger.getLogger(DBManager.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return 0;
+    }
+
+    public void insertMetabolite(CEMSCompound m, CEMSExperimentalConditions c) {
+
+            int compound_id = getCompoundIdFromInchi(m.getINCHI());
+            if(compound_id == 0)
+            {
+                compound_id = getCompoundIdFromInchiKey(m.getINCHIKey());
+                if (compound_id == 0) {
+                    compound_id = insertCompound(m);
+                    insertCompoundIdentifiers(compound_id, m.getINCHI());
+                }
+            }
+            m.setCompound_id(compound_id);
+            insertHMDB(compound_id, m.getRefHMDB());
+            insertPC(compound_id, m.getRefPubChem());
+
+            Integer eff_mob_id = get_eff_mob_id(m, c);
+
+            // INSERT EFF MOB
+            if (eff_mob_id == null) {
+                eff_mob_id = insertEffMob(m, c);  //java.sql.SQLIntegrityConstraintViolationException: Duplicate entry
+            }
+
+            // INSERT METADATA WITH METH SULFONE AND PARACETAMOL
+            insertCeExpPropMet(m, c);
+
+            List<Fragment> fragments = m.getFragments();
+            insertCompCeProdIon(compound_id, eff_mob_id, fragments);     //java.sql.SQLIntegrityConstraintViolationException: Cannot add or update a child row
+
     }
 
     public int insertCompound(CEMSCompound m) {
-        //devuelve el id del compound para usarlo como foreign key
 
         int compound_id = 0;
         String sql = ConstantQueries.INSERT_COMPOUNDS;
-        //"INSERT INTO compounds (compound_name, formula, mass) VALUES (?, ?, ?)"
         try {
             PreparedStatement ps = this.connection.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS);
             ps.setString(1, m.getCompoundName());
@@ -133,13 +122,10 @@ public class DBManager {
             ps.setDouble(3, m.getMonoisotopicMass());
             ps.executeUpdate();                 //insertamos la info
 
-            //hallamos el compound id del metabolito que acabamos de introducir
             try (ResultSet rs = ps.getGeneratedKeys()) {
                 if (rs.next()) {
                     compound_id = rs.getInt(1);
-                    //System.out.println("CompoundId: " + compound_id);
                 }
-                rs.close();
             } catch (SQLException ex) {
                 Logger.getLogger(DBManager.class.getName()).log(Level.SEVERE, null, ex);
             }
@@ -152,7 +138,6 @@ public class DBManager {
     public void insertCompoundIdentifiers(int compound_id, String inchi) {
 
         String sql = ConstantQueries.INSERT_COMP_IDENT;
-        //"INSERT INTO compound_identifiers (compound_id, inchi, inchi_key, smiles) VALUES (?, ?, ?, ?)"
         try {
             PreparedStatement ps = this.connection.prepareStatement(sql);
             ps.setInt(1, compound_id);
@@ -213,19 +198,45 @@ public class DBManager {
     }
 
     /**
-     * @param compound_id
-     * @param ce_exp_prop_id
+     * @param eff_mob_exp_prop_id
      * @return the id of the ce ef mob exp properties and the compound
      */
-    public Integer get_ce_eff_mob_id(int compound_id, int ce_exp_prop_id) {
+    public Integer get_ce_exp_prop_id(int eff_mob_exp_prop_id, CEMSCompound m, CEMSExperimentalConditions c) {
+        String sql = ConstantQueries.SELECT_CE_EXP_PROP_ID;
+        Integer ce_exp_prop_id = 0;
+        try {
+            PreparedStatement ps = this.connection.prepareStatement(sql);
+            ps.setInt(1, eff_mob_exp_prop_id);
+            ps.setInt(2, m.getSampleTypeInt());
+            ps.setInt(3, c.getCapillaryLength());
+            ps.setInt(4, c.getVoltage());
+            ps.setInt(5, IonizationModeType.MAPIONIZATIONMODETYPE.get(c.getIonizationMode()));
+            ps.setString(6, c.getLabel());
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                ce_exp_prop_id = rs.getInt("ce_exp_prop_id");
+                System.out.println("ID found: " + ce_exp_prop_id);
+                rs.close();
+                return ce_exp_prop_id;
+            } else {
+                rs.close();
+                return null;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return ce_exp_prop_id;
+    }
+
+    public Integer get_eff_mob_id(CEMSCompound m, CEMSExperimentalConditions c) {
         String sql = ConstantQueries.SELECT_CE_EFF_MOB_ID;
         Integer ce_eff_mob_id = null;
         try {
             PreparedStatement ps = this.connection.prepareStatement(sql);
-            ps.setInt(1, compound_id);
-            ps.setInt(2, ce_exp_prop_id);
+            ps.setInt(1, m.getCompound_id());
+            ps.setInt(2, c.getEff_mob_exp_prop_id());
             ResultSet rs = ps.executeQuery();
-
             if (rs.next()) {
                 ce_eff_mob_id = rs.getInt(1);
                 rs.close();
@@ -243,19 +254,62 @@ public class DBManager {
         return null;
     }
 
-    public int insertCeEffMob(int compound_id, int ce_ex_prop_id, CEMSCompound m) {
+    public int get_eff_mob_exp_prop_id(CEMSExperimentalConditions c) {
+        String sql = ConstantQueries.SELECT_EFF_MOB_EXP_PROP;
+        Integer eff_mob_exp_prop_id = null;
+        try {
+            PreparedStatement ps = this.connection.prepareStatement(sql);
+            ps.setInt(1, BufferType.MAPBUFFERTYPES.get(c.getBuffer()));
+            ps.setInt(2, c.getTemperature());
+            ps.setInt(3, PolarityType.MAPPOLARITYTYPE.get(c.getPolarity()));
+            eff_mob_exp_prop_id = getInt(ps);
+            c.setEff_mob_exp_prop_id(eff_mob_exp_prop_id);
+            return eff_mob_exp_prop_id;
+        } catch (SQLException ex) {
+            Logger.getLogger(DBManager.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return eff_mob_exp_prop_id;
+    }
+
+    public Integer getCeExpPropId_Label(CEMSExperimentalConditions c) {
+        String sql = "SELECT ce_exp_prop_id FROM ce_experimental_properties WHERE exp_label LIKE ?";
+        Integer ce_exp_prop_id = null;
+        try {
+            PreparedStatement ps = this.connection.prepareStatement(sql);
+            ps.setString(1, c.getLabel());
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                ce_exp_prop_id = rs.getInt(1);
+                c.setCe_exp_prop_id(ce_exp_prop_id);
+                rs.close();
+                return ce_exp_prop_id;
+            } else {
+                rs.close();
+                return null;
+            }
+        } catch (SQLException ex) {
+            //Logger.getLogger(DBManager.class.getName()).log(Level.SEVERE, null, ex);
+            if (ex.getErrorCode() == 1062) { //code de Duplicate Entry
+                System.out.println("No se inserta la información relativa a Effective Mobility porque ya estaba metida.");
+            }
+        }
+        return null;
+    }
+
+    public int insertEffMob(CEMSCompound m, CEMSExperimentalConditions c) {
         //returns el id que se acaba de insertar (ce_eff_mob_id)
-        String sql = ConstantQueries.INSERT_CE_EFF_MOB;
-        //INSERT INTO ce_eff_mob(ce_compound_id, ce_exp_prop_id, cembio_id, eff_mobility) VALUES(?, ?, ?, ?)"
-        int ce_eff_mob_id = 0;
+        String sql = ConstantQueries.INSERT_EFF_MOB;
+        //INSERT INTO ce_eff_mob(ce_compound_id, eff_mob_exp_prop_id, cembio_id, eff_mobility) VALUES(?, ?, ?, ?)"
+        int eff_mob_id = 0;
         try {
             PreparedStatement ps = this.connection.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS);
-            ps.setInt(1, compound_id);
-            ps.setInt(2, ce_ex_prop_id);
+            ps.setInt(1, m.getCompound_id());
+            ps.setInt(2, c.getEff_mob_exp_prop_id());
+            ps.setInt(3, c.getCe_exp_prop_id());
 
             //tenemos que hacer un get del cembio_id
             Integer cembio_id = null;
-            String query = "Select MAX(cembio_id) from ce_eff_mob";
+            String query = "Select MAX(cembio_id) from eff_mob";
             ResultSet rset = statement.executeQuery(query);
             if (rset.next()) {
                 cembio_id = rset.getInt(1);
@@ -263,12 +317,12 @@ public class DBManager {
             }
             rset.close();
             cembio_id++;    //el id insertado es el siguiente al ultimo que se ha leído
-            ps.setDouble(3, cembio_id);
+            ps.setDouble(4, cembio_id);
 
             if (m.getEff_mobility() == null) {
-                ps.setNull(4, java.sql.Types.NULL);
+                ps.setNull(5, java.sql.Types.NULL);
             } else {
-                ps.setDouble(4, m.getEff_mobility());   //CAN BE NULL
+                ps.setDouble(5, m.getEff_mobility());   //CAN BE NULL
             }
             ps.executeUpdate();
             System.out.println("Insertamos la EffectiveMobility");
@@ -276,7 +330,7 @@ public class DBManager {
             //ahora tenemos que obtener el ce_eff_mob_id que se acaba de insertar
             try (ResultSet rs = ps.getGeneratedKeys()) {
                 if (rs.next()) {
-                    ce_eff_mob_id = rs.getInt(1);
+                    eff_mob_id = rs.getInt(1);
                     // ceSystem.out.println("Last ce_eff_mob_id: " + ce_eff_mob_id);       //este id es el que se manda a el insert de los fragments
                 }
                 rs.close();
@@ -289,12 +343,59 @@ public class DBManager {
                 System.out.println("No se inserta la información relativa a Effective Mobility porque ya estaba metida.");
             }
         }
-        return ce_eff_mob_id;
+        return eff_mob_id;
     }
 
-    public void insertCeExpPropMet(int ce_eff_mob_id, CEMSCompound m, CEMSExperimentalConditions c) {
+    public int insertCeExpProp(CEMSExperimentalConditions c) throws SQLException {
+        String sql = ConstantQueries.INSERT_CE_EXP_PROP;
+        try {
+            PreparedStatement ps = this.connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 
-        String sql = ConstantQueries.INSERT_CE_EXP_PROP_META;
+            //cuidado con los valores que son null
+            //insertamos lo referente a la metionina sulfona
+
+            // ce_eff_mob_id, experimental_mz, ce_identification_level, ce_sample_type," +
+            // "capillary_length, capillary_voltage, " +
+            // "bge_compound_id, absolute_MT, relative_MT, commercial, exp_eff_mob, ionization_mode)
+            ps.setInt(1, c.getEff_mob_exp_prop_id());
+            ps.setInt(2, c.getSampleType_int());
+            if (c.getCapillaryLength() == null) {
+                ps.setNull(3, java.sql.Types.NULL);
+            } else {
+                ps.setInt(3, c.getCapillaryLength());
+            }
+            if (c.getVoltage() == null) {
+                ps.setNull(4, java.sql.Types.NULL);
+            } else {
+                ps.setInt(4, c.getVoltage());
+            }
+            if (IonizationModeType.MAPIONIZATIONMODETYPE.get(c.getIonizationMode()) == null) {
+                ps.setNull(5, java.sql.Types.NULL);
+            } else {
+                ps.setInt(5, IonizationModeType.MAPIONIZATIONMODETYPE.get(c.getIonizationMode()));
+            }
+            ps.setString(6, c.getLabel());
+            ps.executeUpdate();
+            try (ResultSet rs = ps.getGeneratedKeys()) {
+                if (rs.next()) {
+                    int ceExpProperties = rs.getInt(1);
+                    c.setCe_exp_prop_id(ceExpProperties);
+                    return ceExpProperties;
+                }
+            } catch (SQLException ex) {
+                Logger.getLogger(DBManager.class.getName()).log(Level.SEVERE, null, ex);
+                throw ex;
+            }
+            System.out.println("Insertamos las ce_experimental_properties");
+        } catch (SQLException ex) {
+            throw ex;
+        }
+        throw new SQLException("check the Insertion of: " + c);
+    }
+
+    public void insertCeExpPropMet(CEMSCompound m, CEMSExperimentalConditions c) {
+
+        String sql = ConstantQueries.INSERT_CE_EXP_PROP_METADATA;
         //"INSERT INTO ce_experimental_properties_metadata(ce_eff_mob_id, experimental_mz, capillary_voltage, capillary_length, bge_compound_id, absolute_MT, relative_MT) VALUES (?, ?, ?, ?, ?, ?, ?)"
         try {
             PreparedStatement ps = this.connection.prepareStatement(sql);
@@ -305,50 +406,34 @@ public class DBManager {
             // ce_eff_mob_id, experimental_mz, ce_identification_level, ce_sample_type," +
             // "capillary_length, capillary_voltage, " +
             // "bge_compound_id, absolute_MT, relative_MT, commercial, exp_eff_mob, ionization_mode)
-            ps.setInt(1, ce_eff_mob_id);
-            // TODO SET AN SQL NULL VALUE WHEN VALUES ARE NULL
+            ps.setInt(1, c.getCe_exp_prop_id());
+            ps.setInt(2, m.getCompound_id());
             if (m.getExperimentalMZ() == null) {
-                ps.setNull(2, java.sql.Types.NULL);
+                ps.setNull(3, java.sql.Types.NULL);
             } else {
-                ps.setDouble(2, m.getExperimentalMZ());
+                ps.setDouble(3, m.getExperimentalMZ());
             }
-            ps.setInt(3, m.getIdentificationLevel());
-            ps.setInt(4, m.getSampleTypeInt());
-            if (c.getCapillaryLength() == null) {
+            ps.setInt(4, m.getIdentificationLevel());
+            if (c.getRef_compound_id_RMT() == null) {
                 ps.setNull(5, java.sql.Types.NULL);
             } else {
-                ps.setInt(5, c.getCapillaryLength());
-            }
-            if (c.getVoltage() == null) {
-                ps.setNull(6, java.sql.Types.NULL);
-            } else {
-                ps.setInt(6, c.getVoltage());
-            }
-            if (c.getRef_compound_id_RMT() == null) {
-                ps.setNull(7, java.sql.Types.NULL);
-            } else {
-                ps.setInt(7, c.getRef_compound_id_RMT());
+                ps.setInt(5, c.getRef_compound_id_RMT());
             }
             if (m.getMT() == null) {
-                ps.setNull(8, java.sql.Types.NULL);
+                ps.setNull(6, java.sql.Types.NULL);
             } else {
-                ps.setDouble(8, m.getMT());
+                ps.setDouble(6, m.getMT());
             }
             if (m.getRMT() == null) {
-                ps.setNull(9, java.sql.Types.NULL);
+                ps.setNull(7, java.sql.Types.NULL);
             } else {
-                ps.setDouble(9, m.getRMT());
+                ps.setDouble(7, m.getRMT());
             }
-            ps.setNull(10, java.sql.Types.NULL);
-            ps.setDouble(11, m.getEff_mobility());
-            if (IonizationModeType.MAPIONIZATIONMODETYPE.get(c.getIonizationMode()) == null) {
-                ps.setNull(12, java.sql.Types.NULL);
-            } else {
-                ps.setInt(12, IonizationModeType.MAPIONIZATIONMODETYPE.get(c.getIonizationMode()));
-            }
+            ps.setNull(8, java.sql.Types.NULL);
+            ps.setDouble(9, m.getEff_mobility());
             ps.executeUpdate();
 
-            System.out.println("Insertamos las ce_experimental_properties");
+            System.out.println("Insertamos las ce_experimental_properties_metadata");
         } catch (SQLException ex) {
             Logger.getLogger(DBManager.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -473,7 +558,6 @@ public class DBManager {
      * It executes the query and returns the list of Fragments returned by the
      * query.
      *
-     * @param query
      * @return the list of fragments or null
      */
     private List<Fragment> getFragments(int id) {
