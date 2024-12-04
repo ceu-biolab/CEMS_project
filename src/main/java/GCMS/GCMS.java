@@ -10,7 +10,7 @@ public class GCMS {
     }
 
     public List<CompoundGC> getCompoundgcList() {
-        return compoundgcList;
+        return this.compoundgcList;
     }
 
     public void setCompoundgcList(List<CompoundGC> compoundgcList) {

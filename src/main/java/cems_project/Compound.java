@@ -22,7 +22,8 @@ import java.util.Objects;
 public class Compound {
 
     private Integer compound_id;
-    private final String compoundName;
+    //private final String compoundName;
+    protected String compoundName; //Changed so CompoundGC can access
     private final String casId;
     private final String formula;
     private final Double monoisotopicMass;
@@ -81,10 +82,6 @@ public class Compound {
 
     public Compound(Identifier identifiers) {
         this(null, null, null, null, null, null, null, null, identifiers);
-    }
-
-    public Compound() {
-        this(null, null, null, null, null, null, null, null, null);
     }
 
     public Compound(Integer id, Identifier i) {
