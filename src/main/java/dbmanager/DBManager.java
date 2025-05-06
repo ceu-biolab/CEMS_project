@@ -56,6 +56,12 @@ public class DBManager {
         }
     }
 
+    /**
+     * Return the compound id from the inchi of a compound
+     *
+     * @param inchi
+     * @return compound_id
+     */
     public int getCompoundIdFromInchi(String inchi) {
         String sql = "SELECT compound_id FROM compound_identifiers WHERE inchi LIKE ?";
         try {
@@ -69,6 +75,12 @@ public class DBManager {
         return 0;
     }
 
+    /**
+     * Return the compound id from the inchiKey of a compound
+     *
+     * @param inchiKey
+     * @return compound_id
+     */
     public int getCompoundIdFromInchiKey(String inchiKey) {
         String sql = "SELECT compound_id FROM compound_identifiers WHERE inchi_key LIKE ?";
         try {
@@ -82,6 +94,12 @@ public class DBManager {
         return 0;
     }
 
+    /**
+     * Inserts the metabolite into the database
+     *
+     * @param m CEMSCompound
+     * @param c CEMSExperimentalConditions
+     */
     public void insertMetabolite(CEMSCompound m, CEMSExperimentalConditions c) {
 
             int compound_id = getCompoundIdFromInchi(m.getINCHI());
@@ -112,6 +130,12 @@ public class DBManager {
 
     }
 
+    /**
+     * Insert into the table compounds of the database the CEMSCompound
+     *
+     * @param m CEMSCompound
+     * @return compound_id
+     */
     public int insertCompound(CEMSCompound m) {
 
         int compound_id = 0;
@@ -136,6 +160,13 @@ public class DBManager {
         return compound_id;
     }
 
+    /**
+     * Insert into the table compound_identifiers of the database the
+     * compound_id, inchi, inchi_key, smiles of the corresponding compound
+     *
+     * @param compound_id
+     * @param inchi
+     */
     public void insertCompoundIdentifiers(int compound_id, String inchi) {
 
         String sql = ConstantQueries.INSERT_COMP_IDENT;
@@ -158,6 +189,12 @@ public class DBManager {
         }
     }
 
+    /**
+     * Insert on the table compounds_hmdb the compound_id and HMBD
+     *
+     * @param compound_id
+     * @param HMDB
+     */
     public void insertHMDB(int compound_id, String HMDB) {
         String sql = ConstantQueries.INSERT_COMP_HMDB;
         //"INSERT INTO compounds_hmdb (hmdb_id, compound_id) VALUES (?, ?)"
@@ -177,6 +214,12 @@ public class DBManager {
         }
     }
 
+    /**
+     * Insert on the table compounds_pc the compound_id and pubchem id of the component
+     *
+     * @param compound_id
+     * @param pc PubChem id
+     */
     public void insertPC(int compound_id, Integer pc) {
         String sql = ConstantQueries.INSERT_COMP_PC;
         //"INSERT INTO compounds_pc (pc_id, compound_id) VALUES (?, ?)"
@@ -230,6 +273,14 @@ public class DBManager {
         return ce_exp_prop_id;
     }
 
+    /**
+     * Selects the ce_eff_mob_id from the table eff_mob
+     * using the compound_id and eff_mob_exp_prop_id
+     *
+     * @param m CEMSCompound
+     * @param c CEMSExperimentalConditions
+     * @return ce_eff_mob_id
+     */
     public Integer get_eff_mob_id(CEMSCompound m, CEMSExperimentalConditions c) {
         String sql = ConstantQueries.SELECT_CE_EFF_MOB_ID;
         Integer ce_eff_mob_id = null;
@@ -255,6 +306,14 @@ public class DBManager {
         return null;
     }
 
+    /**
+     * Selects the eff_mob_exp_prop_id from the table eff_mob_experimental_properties
+     * using temperature and polarity
+     * It also sets the paramenter eff_mob_exp_prop_id of c
+     *
+     * @param c CEMSExperimentalConditions
+     * @return eff_mob_exp_prop_id
+     */
     public int get_eff_mob_exp_prop_id(CEMSExperimentalConditions c) {
         String sql = ConstantQueries.SELECT_EFF_MOB_EXP_PROP;
         Integer eff_mob_exp_prop_id = null;
@@ -272,6 +331,13 @@ public class DBManager {
         return eff_mob_exp_prop_id;
     }
 
+    /**
+     * Looks for the ce_exp_prop_id of the table ce_experimental_properties using exp_label from c
+     * It also sets the paramenter ce_exp_prop_id of c
+     *
+     * @param c CEMSExperimentalConditions
+     * @return ce_exp_prop_id
+     */
     public Integer getCeExpPropId_Label(CEMSExperimentalConditions c) {
         String sql = "SELECT ce_exp_prop_id FROM ce_experimental_properties WHERE exp_label LIKE ?";
         Integer ce_exp_prop_id = null;
@@ -297,6 +363,16 @@ public class DBManager {
         return null;
     }
 
+    /**
+     * Inserts into the table eff_mob the
+     * compound_id from m
+     * eff_mob_exp_prop_id, ce_exp_prop_id from c
+     * cembio_id, eff_mobility
+     *
+     * @param m CEMSCompound
+     * @param c CEMSExperimentalConditions
+     * @return eff_mob_id
+     */
     public int insertEffMob(CEMSCompound m, CEMSExperimentalConditions c) {
         //returns el id que se acaba de insertar (ce_eff_mob_id)
         String sql = ConstantQueries.INSERT_EFF_MOB;
@@ -347,6 +423,14 @@ public class DBManager {
         return eff_mob_id;
     }
 
+    /**
+     * Inserts into the table ce_experimental_properties the values of
+     * eff_mob_exp_prop_id, ce_sample_type, capillary_length, capillary_voltage, ionization_mode, exp_label
+     *
+     * @param c CEMSExperimentalConditions
+     * @return ceExpProperties id
+     * @throws SQLException
+     */
     public int insertCeExpProp(CEMSExperimentalConditions c) throws SQLException {
         String sql = ConstantQueries.INSERT_CE_EXP_PROP;
         try {
@@ -394,6 +478,14 @@ public class DBManager {
         throw new SQLException("check the Insertion of: " + c);
     }
 
+    /**
+     * Inserts into the table ce_experimental_properties the values of
+     * ce_exp_prop_id, compound_id, experimental_mz, ce_identification_level,
+     * rmt_ref_compound_id, absolute_MT, relative_MT, commercial, exp_eff_mob
+     *
+     * @param m CEMSCompound
+     * @param c CEMSExperimentalConditions
+     */
     public void insertCeExpPropMet(CEMSCompound m, CEMSExperimentalConditions c) {
 
         String sql = ConstantQueries.INSERT_CE_EXP_PROP_METADATA;
@@ -441,6 +533,15 @@ public class DBManager {
 
     }
 
+    /**
+     * Inserts into the table compound_ce_product_ion:
+     * ion_source_voltage, ce_product_ion_mz, ce_product_ion_intensity, ce_transformation_type,
+     * ce_eff_mob_id, compound_id_own
+     *
+     * @param compound_id
+     * @param ce_eff_mob_id
+     * @param fragments List<Fragment>
+     */
     public void insertCompCeProdIon(int compound_id, int ce_eff_mob_id, List<Fragment> fragments) {
         String sql = ConstantQueries.INSERT_COMP_CE_PROD_ION;
         //"INSERT INTO compound_ce_product_ion (ion_source_voltage, ce_product_ion_mz, ce_product_ion_intensity,  ce_product_ion_type, ce_eff_mob_id, compound_id_own) VALUES (?, ?, ?, 'fragment', ?, ?)"
@@ -503,6 +604,10 @@ public class DBManager {
         return id;
     }
 
+    /**
+     * @param ps PreparedStatement
+     * @return id
+     */
     public int getInt(PreparedStatement ps) {
         int id = 0;
         // Be aware that the connection should be initialized (calling the method connectToDB)
@@ -703,7 +808,7 @@ public class DBManager {
 
             // Here you can check the values obtained
             //System.out.println("DB_NAME: " + dbName + " DBUser: " + dbUser + " DBPassword: " + dbPassword);
-            db.connectToDB("jdbc:mysql://localhost/" + dbName + "?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true", dbUser, dbPassword);
+            db. connectToDB("jdbc:mysql://localhost/" + dbName + "?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true", dbUser, dbPassword);
 
             //GET INT
             int id = db.getInt("select compound_id from compounds where formula = \"C5H11NO4\"");
