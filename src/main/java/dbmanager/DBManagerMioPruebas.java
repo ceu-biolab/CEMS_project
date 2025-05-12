@@ -29,7 +29,7 @@ public class DBManagerMioPruebas {
 
     private static final String dbname = "jdbc:mysql://localhost/pruebas_tfg?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true";
     private static final String dbuser = "root";
-    private static final String dbpassword = "";
+    private static final String dbpassword = "LaRambla_SQL";
 
     //sube un compound (aunq no toda la info que el restotiene en la base de datos
     //NO ES NECESARIO HACERLO ALL SUBIDO!!
@@ -181,7 +181,7 @@ public class DBManagerMioPruebas {
      * @param name
      * @return id
      */
-    private static int getCompoundIdfromName(String name) {
+    public static int getCompoundIdfromName(String name) {
         Connection connection = null;
         Statement statement = null;
         //PreparedStatement prep=null;
@@ -216,6 +216,7 @@ public class DBManagerMioPruebas {
 
     /**
      * Inserts into derivatization methods table the derivatization type of the compound
+     * Only if it does not exists
      * @param compoundgc
      */
     public static void insertDerivatizationMethod(CompoundGC compoundgc){
@@ -227,10 +228,13 @@ public class DBManagerMioPruebas {
             connection = DriverManager.getConnection(dbname, dbuser, dbpassword);
             statement = connection.createStatement();
 
-            if(getDerivatizationMethodIdfromDerType(compoundgc.getDertype())==0){ //IF IS 0 THEN IT DOESN'T EXIST IN TABLE
+            String derType = compoundgc.getDertype().toString();
+            //if(getDerivatizationMethodIdfromDerType(compoundgc.getDertype())==0){ //IF IS 0 THEN IT DOESN'T EXIST IN TABLE
+            if(getDerivatizationMethodIdfromDerType(derType)==0){ //IF IS 0 THEN IT DOESN'T EXIST IN TABLE
                 String sql = "INSERT INTO derivatization_methods (derivatization_type) VALUES (?)";
                 prep = connection.prepareStatement(sql);
-                prep.setString(1, compoundgc.getDertype());
+                //prep.setString(1, compoundgc.getDertype());
+                prep.setString(1, derType);
 
                 prep.executeUpdate();
                 prep.close();
@@ -275,7 +279,8 @@ public class DBManagerMioPruebas {
             prep.setDouble(2, compoundgc.getRT());
             prep.setDouble(3, compoundgc.getCompound_id());
 
-            String dertype = compoundgc.getDertype();
+            //String dertype = compoundgc.getDertype();
+            String dertype = compoundgc.getDertype().toString();
             prep.setDouble(4, getDerivatizationMethodIdfromDerType(dertype));
             prep.executeUpdate();
             prep.close();
@@ -314,7 +319,8 @@ public class DBManagerMioPruebas {
             prep = connection.prepareStatement(sql);
             prep.setDouble(1, compoundgc.getCompound_id());
 
-            String dertype = compoundgc.getDertype();
+            //String dertype = compoundgc.getDertype();
+            String dertype = compoundgc.getDertype().toString();
             prep.setDouble(2, getDerivatizationMethodIdfromDerType(dertype));
             prep.executeUpdate();
             prep.close();
@@ -395,13 +401,16 @@ public class DBManagerMioPruebas {
             connection = DriverManager.getConnection(dbname, dbuser, dbpassword);
             statement = connection.createStatement();
 
+            String gcCol = compoundgc.getGcColumn().toString();
             String sql = "INSERT INTO gc_column (gc_ri_rt_id, gc_column_name) VALUES (?, ?)";
-            prep = connection.prepareStatement(sql);
-            int compounid = getCompoundIdfromName(compoundgc.getCompoundName());
-            prep.setDouble(1, getgcrirtIdfromCompoundId(compounid));
-            prep.setString(2, compoundgc.getGcColumn());
+            prep = connection.prepareStatement(sql);;
+
+            prep.setDouble(1, getgcrirtIdfromCompoundId(compoundgc.getCompound_id()));
+            prep.setString(2, gcCol);
+
             prep.executeUpdate();
             prep.close();
+
 
         } catch (SQLException ex) {
             Logger.getLogger(DBManager.class.getName()).log(Level.SEVERE, null, ex);
@@ -417,6 +426,65 @@ public class DBManagerMioPruebas {
                 throw new RuntimeException(e);
             }
         }
+    }
+
+    /**
+     * Gets the id of gccolumn type from its name
+     * @param name
+     * @return gccolumn id
+     */
+    public static int getGCColumnIdfromGCColumnType(String name) {
+        Connection connection = null;
+        Statement statement = null;
+        //PreparedStatement prep=null;
+        int der_id = 0;
+
+        String sql = "SELECT gc_column_id FROM gc_column WHERE gc_column_name LIKE ?";
+        try {
+            connection = DriverManager.getConnection(dbname, dbuser, dbpassword);
+            statement = connection.createStatement();
+
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ps.setString(1, name);
+            der_id = getIntfromPrepStatementGcColumnName(ps);
+            return der_id;
+
+        } catch (SQLException ex) {
+            Logger.getLogger(DBManager.class.getName()).log(Level.SEVERE, null, ex);
+        }finally {
+            try {
+                statement.close();
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        return der_id;
+    }
+
+    /**
+     * From a PreparedStatement obtains an int (gc_column_id)
+     * @param ps
+     * @return gc_column_id
+     */
+    private static int getIntfromPrepStatementGcColumnName(PreparedStatement ps) {
+        int id = 0;
+        // Be aware that the connection should be initialized (calling the method connectToDB)
+        try {
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                id = rs.getInt("gc_column_id");
+            }
+            rs.close();
+
+        } catch (SQLException ex) {
+            Logger.getLogger(DBManager.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return id;
     }
 
     /**
@@ -464,7 +532,7 @@ public class DBManagerMioPruebas {
      * @param name
      * @return derivatization method id
      */
-    private static int getDerivatizationMethodIdfromDerType(String name) {
+    public static int getDerivatizationMethodIdfromDerType(String name) {
         Connection connection = null;
         Statement statement = null;
         //PreparedStatement prep=null;
@@ -502,7 +570,7 @@ public class DBManagerMioPruebas {
      * @param cid
      * @return gc_ri_rt id
      */
-    private static int getgcrirtIdfromCompoundId(int cid) {
+    public static int getgcrirtIdfromCompoundId(int cid) {
         Connection connection = null;
         Statement statement = null;
         int gcrirt_id = 0;
@@ -612,9 +680,11 @@ public class DBManagerMioPruebas {
 
             String sql = "INSERT INTO mio_gcms_spectrum (compound_id, derivatization_id) VALUES (?, ?)";
             prep = connection.prepareStatement(sql);
-            //prep.setDouble(1, getCompoundIdfromName(compoundgc.getCompoundName())); //Since the name could give errors
-            prep.setDouble(1, getCompoundIdFromInchi(compoundgc.getINCHI()));
-            String dertype = compoundgc.getDertype();
+            ////prep.setDouble(1, getCompoundIdfromName(compoundgc.getCompoundName())); //Since the name could give errors
+            //prep.setDouble(1, getCompoundIdFromInchi(compoundgc.getINCHI()));
+            prep.setDouble(1, compoundgc.getCompound_id());
+            //String dertype = compoundgc.getDertype();
+            String dertype = compoundgc.getDertype().toString();
             prep.setDouble(2, getDerivatizationMethodIdfromDerType(dertype));
             prep.executeUpdate();
             prep.close();
@@ -813,8 +883,8 @@ public class DBManagerMioPruebas {
 
     }*/
 
-    //MAIN TO INSERT COMPOUNDS THAT WASN'T On DB
-    /*public static void main(String[] args) {
+    /*//MAIN TO INSERT COMPOUNDS THAT WASN'T On DB
+    public static void main(String[] args) {
 
         try {
             /*
@@ -849,7 +919,7 @@ public class DBManagerMioPruebas {
             *
 
             //Compound 4 inserted
-            Compound compoundInfo4 = PubchemRest.getCompoundFromName("Caryophylla-4(12),8(13)-dien-5.alpha.-ol\n");
+            /*Compound compoundInfo4 = PubchemRest.getCompoundFromName("Caryophylla-4(12),8(13)-dien-5.alpha.-ol\n");
             System.out.println("COMPOUN 4: "+compoundInfo4);
 
             insertintoCopiaCompound(compoundInfo4);
@@ -862,6 +932,7 @@ public class DBManagerMioPruebas {
             System.out.println("key44: "+compoundInfo4.getIdentifiersOwn().getInchi_key());
             System.out.println("smiles44: "+compoundInfo4.getIdentifiersOwn().getSmiles());
             insertCopiaCompoundIdentifiers(compoundInfo4);
+            *
 
         } catch (IOException e) {
             throw new RuntimeException(e);
