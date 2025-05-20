@@ -13,12 +13,9 @@ public class CompoundGC extends Compound {
 
     //lista de las derivatizaciones de un compuesto
     //private List<DerivatizationType> derivatizationTypeList = null;
-    //private DerivatizationType dertype = DerivatizationType.ALKYLATION;
-    //private final String dertype = "chloroformate";//methyl_chloroformate
-    private DerivatizationType dertype = DerivatizationType.METHYL_CHLOROFORMATE;
+    private DerivatizationType dertype;// = DerivatizationType.METHYL_CHLOROFORMATE;
 
-    //private final String gcColumn = "unkown";
-    private GCColumn gcColumn = GCColumn.UNKNOWN;
+    private GCColumn gcColumn;// = GCColumn.STANDARD_NON_POLAR; //default
 
     //WORKING
     private GCMS_Spectrum gcmsSpectrum;
@@ -46,16 +43,21 @@ public class CompoundGC extends Compound {
                 compound_status, compound_type, logP, identifiersOwn, identifiersParent);
         this.RI = RI;
         this.RT = RT;
+
+        this.dertype = DerivatizationType.METHYL_CHLOROFORMATE;
+        this.gcColumn = GCColumn.STANDARD_NON_POLAR; //default
     }
 
     //For the Spectrum
     public CompoundGC(Integer compound_id, String name, String casId, String formula, Double monoisotopicMass,
                       Integer compound_status, Integer compound_type, Double logP,
-                      Identifier identifiersOwn, Identifier identifiersParent, GCMS_Spectrum gcmsSpectrum
-    ) {
+                      Identifier identifiersOwn, Identifier identifiersParent, GCMS_Spectrum gcmsSpectrum) {
         super(compound_id, name, casId, formula, monoisotopicMass,
                 compound_status, compound_type, logP, identifiersOwn, identifiersParent);
         this.gcmsSpectrum = gcmsSpectrum;
+
+        this.dertype = DerivatizationType.METHYL_CHLOROFORMATE;
+        this.gcColumn = GCColumn.STANDARD_NON_POLAR; //default
     }
 
     public double getRT() {
@@ -89,9 +91,6 @@ public class CompoundGC extends Compound {
     }
 
     public void setGcColumn(String gcColumn) {
-        if(gcColumn.equalsIgnoreCase("UNKNOWN")){
-            this.gcColumn = GCColumn.UNKNOWN;
-        }
         if(gcColumn.equalsIgnoreCase("STANDARD_NON_POLAR")){
             this.gcColumn = GCColumn.STANDARD_NON_POLAR;
         }
@@ -110,30 +109,6 @@ public class CompoundGC extends Compound {
     public void setGcmsSpectrum(GCMS_Spectrum gcmsSpectrum) {
         this.gcmsSpectrum = gcmsSpectrum;
     }
-
-    /*public DerivatizationType getDertype() {
-        return dertype;
-    }
-
-    public void setDertype(DerivatizationType dertype) {
-        this.dertype = dertype;
-    }*/
-
-    /*public List<DerivatizationType> getDerivatizationTypeList() {
-        return this.derivatizationTypeList;
-    }
-
-    public void setDerivatizationTypeList(List<DerivatizationType> derivatizationTypeList) {
-        this.derivatizationTypeList = derivatizationTypeList;
-    }*/
-
-    /*@Override
-    public String toString() {
-        return "name=" + this.compoundName +
-                ", RI=" + this.RI +
-                ", RT=" + this.RT +
-                ", Spectrum=" + this.gcmsSpectrum;
-    }*/
 
     @Override
     public String toString() {

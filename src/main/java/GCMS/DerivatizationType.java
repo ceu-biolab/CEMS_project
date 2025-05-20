@@ -2,7 +2,5 @@ package GCMS;
 
 //types of derivatization methods for GCMS
 public enum DerivatizationType {
-    //SILYLATION, ALKYLATION, ACYLATION;
-    //ALKYLATION;
-    METHYL_CHLOROFORMATE;
+    METHYL_CHLOROFORMATE, TMS, TBDMS_DERIVATIZATION;;
 }

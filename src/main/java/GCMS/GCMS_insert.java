@@ -103,8 +103,7 @@ public class GCMS_insert {
     /*public static void main(String[] args) {
         int i;
         try{
-            //String filexcel = "src/main/resources/gcms_excels/Calculo_RI_Alkanes.xlsx";
-            String filexcel = "C:\\Users\\marta\\Documents\\Uni\\Biomedica_TFG\\Excels\\Compound_RT-RI-Inchi.xlsx";
+            String filexcel = "src/main/resources/gcms_excels/Compound_RT-RI-Inchi.xlsx";
             List<CompoundGC> compoundgcList = ReadExcel.readexcelcompoundrtriinchi(filexcel);
 
             CompoundGC compoundgc;
@@ -115,7 +114,7 @@ public class GCMS_insert {
                 //DBManagerMioPruebas.insertDerivatizationMethod(compoundgc);
                 //DBManagerMioPruebas.insertGCCompoundintoCompoundgcms(compoundgc);
 
-                //DBManagerMioPruebas.insertDerivatizationMethod(compoundgc); //Como actualemnte solo hay un metodo solo hay que añadirlo una vez
+                //DBManagerMioPruebas.insertDerivatizationMethod(compoundgc); //Since we only use one method it only needs to be inserted one time
                 //DBManagerMioPruebas.insertCompoundsDerMethods(compoundgc);
                 //DBManagerMioPruebas.insertRIRT(compoundgc);
                 //DBManagerMioPruebas.insertGCColumn(compoundgc);
@@ -123,26 +122,26 @@ public class GCMS_insert {
                 //DBManagerMioPruebas.insertgcmsSpectrum(compoundgc);
                 //DBManagerMioPruebas.insertGCMSPeaks(compoundgc);
 
-                System.out.println(i+" HECHO");
+                System.out.println(i+" DONE");
             }
-            System.out.println("AÑADIDO");
+            System.out.println("ADDED");
 
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }*/
 
-    //MAIN TO INSERT RT RI & OTHER EXCEPT SPECTRUM --> all inserted
+    /*//MAIN TO INSERT RT RI & OTHER FOR SPECTRUM IS THE LAST MAIN
     public static void main(String[] args) {
         int i;
         try{
-            String filexcel = "C:\\Users\\marta\\Documents\\Uni\\Biomedica_TFG\\Excels\\CorrectInfo_CompoundsRT-RI.xlsx";
+            String filexcel = "src/main/resources/gcms_excels/CorrectInfo_CompoundsRT-RI.xlsx";
 
             List<CompoundGC> compoundgcList = ReadExcel.readexcelcompoundrtriinchi(filexcel);
 
             CompoundGC compoundgc;
-            /*compoundgc = compoundgcList.get(41); //listas empiezan en 0!!
-            System.out.println("c41: "+compoundgc.getCompoundName());*/
+            /*compoundgc = compoundgcList.get(41); //list beguins in 0!!
+            System.out.println("c41: "+compoundgc.getCompoundName());*
 
             int size = compoundgcList.size();
             System.out.println("Size: "+size +"\n");
@@ -150,7 +149,7 @@ public class GCMS_insert {
             /*for (i=1; i<=compoundgcList.size(); i++){
                 compoundgc = compoundgcList.get(i-1);
                 System.out.println("i: "+i+": "+compoundgc.getCompoundName());
-            }*/
+            }*
 
             for (i=1; i<=compoundgcList.size(); i++){
                 compoundgc = compoundgcList.get(i-1);
@@ -172,57 +171,57 @@ public class GCMS_insert {
                         System.out.println("insert into identifiers");
                         //compoundgc.setCompound_id(DBManagerMioPruebas.getCompoundIdFromInchi(compoundgc.getINCHI()));
 
-                        DBManagerMioPruebas.insertDerivatizationMethod(compoundgc);
+                        DBManagerMioPruebas.insertDerivatizationMethod(compoundgc); //inserts derivatization method
                         System.out.println("insert dermethod");
-                        DBManagerMioPruebas.insertCompoundsDerMethods(compoundgc);
+                        DBManagerMioPruebas.insertCompoundsDerMethods(compoundgc); //inserts relation compound-derivatization method
                         System.out.println("insert relation");
 
-                        DBManagerMioPruebas.insertRIRT(compoundgc);
-                        System.out.println("insert rirt");
-                        DBManagerMioPruebas.insertGCColumn(compoundgc);
+                        DBManagerMioPruebas.insertGCColumn(compoundgc); //inserts the column type
                         System.out.println("insert gccolumn");
+                        DBManagerMioPruebas.insertRIRT(compoundgc); //inserts the RI and RT of the compound
+                        System.out.println("insert rirt");
 
                         /*For the Spectrum use other main
                         DBManagerMioPruebas.insertgcmsSpectrum(compoundgc);
-                        DBManagerMioPruebas.insertGCMSPeaks(compoundgc);*/
+                        DBManagerMioPruebas.insertGCMSPeaks(compoundgc);*
                     }
 
                     //String der_type = knowDerType(compoundgc.getDertype());
 
-                    else {
+                    else { //if the compound exists in the tables
                         id = DBManagerMioPruebas.getCompoundsIdDerMethods(compoundgc.getCompound_id());
                         System.out.println("ID tabla: " + id);
-                        if (id == 0) { //If they are not in the compound der table
+                        if (id == 0) { //If the relation between compound and derivatization method do not exist
                             /* This two compounds are not found if we used the name
                             if((compoundgc.getCompound_id()==302139) || (compoundgc.getCompound_id()==302137)){
                                 DBManagerMioPruebas.insertCompoundsDerMethods(compoundgc);
                                 System.out.println("insert both ids er");
                                 DBManagerMioPruebas.insertRIRT(compoundgc);
                                 System.out.println("insert rtri");
-                            } else{*/
-                            DBManagerMioPruebas.insertDerivatizationMethod(compoundgc);
-                            DBManagerMioPruebas.insertCompoundsDerMethods(compoundgc);
+                            } else{*
+                            DBManagerMioPruebas.insertDerivatizationMethod(compoundgc); //inserts derivatization method
+                            DBManagerMioPruebas.insertCompoundsDerMethods(compoundgc); //inserts the relation compound-derivatization method
                             System.out.println("insert both ids");
-                            DBManagerMioPruebas.insertRIRT(compoundgc);
-                            System.out.println("insert rtri");
-                            DBManagerMioPruebas.insertGCColumn(compoundgc);
+                            DBManagerMioPruebas.insertGCColumn(compoundgc); //inserts the column
                             System.out.println("insert gccolumn");
+                            DBManagerMioPruebas.insertRIRT(compoundgc); //inserts RI & RT
+                            System.out.println("insert rtri");
 
                             //}
-                        } else {
+                        } else { //If the relation exists
                             id = DBManagerMioPruebas.getgcrirtIdfromCompoundId(compoundgc.getCompound_id());
                             System.out.println("ID tabla: " + id);
                             if (id == 0) {//the ri rt are not inserted
-                                DBManagerMioPruebas.insertRIRT(compoundgc);
-                                System.out.println("insert rtri else");
-                                DBManagerMioPruebas.insertGCColumn(compoundgc);
+                                DBManagerMioPruebas.insertGCColumn(compoundgc); //inserts column
                                 System.out.println("insert gccolumn");
+                                DBManagerMioPruebas.insertRIRT(compoundgc); //inserts RI & RT
+                                System.out.println("insert rtri else");
                             }
                             System.out.println("Everything is inserted");
                         }
                         /*For the Spectrum use other main
                         DBManagerMioPruebas.insertgcmsSpectrum(compoundgc);
-                        DBManagerMioPruebas.insertGCMSPeaks(compoundgc);*/
+                        DBManagerMioPruebas.insertGCMSPeaks(compoundgc);*
                     }
                     //System.out.println(i+" HECHO");
                 //}
@@ -232,10 +231,10 @@ public class GCMS_insert {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-    }
+    }*/
 
 
-    /*//MAIN TO INSERT SPECTRUM -- REST MUST BE INSERTED --> USE THE OTHER MAIN
+    //MAIN TO INSERT SPECTRUM -- REST MUST BE INSERTED --> USE THE OTHER MAIN
     public static void main(String[] args) {
         int i;
         int j;
@@ -259,12 +258,12 @@ public class GCMS_insert {
                 System.out.println("ID COmpo: "+compoundgc.getCompound_id());
                 id_der = DBManagerMioPruebas.getCompoundsIdDerMethods(compoundgc.getCompound_id());
                 System.out.println("ID tabla: "+id_der);
-                if(id_der == 0){//if it is not in the tables
+                if(id_der == 0){//if compound-derivatizationmethod is not in the tables
                     DBManagerMioPruebas.insertDerivatizationMethod(compoundgc);
-                    DBManagerMioPruebas.insertCompoundsDerMethods(compoundgc);
+                    DBManagerMioPruebas.insertCompoundsDerMethods(compoundgc); //inserts compound-derivatizationmethod
                     System.out.println("insert both ids");
                     //new_id_der = DBManagerMioPruebas.getCompoundsIdDerMethods(compoundgc.getCompound_id());
-                    DBManagerMioPruebas.insertgcmsSpectrum(compoundgc);
+                    DBManagerMioPruebas.insertgcmsSpectrum(compoundgc); //inserts the spectrum
                     System.out.println("insert spectrum");
 
                     //Insert Peaks
@@ -274,8 +273,9 @@ public class GCMS_insert {
                         DBManagerMioPruebas.insertGCMSPeaks(compoundgc, gcms_peaks);
                     }
 
-                }else{
-                    DBManagerMioPruebas.insertgcmsSpectrum(compoundgc);
+                }else{ //if the relation exists
+                    DBManagerMioPruebas.insertgcmsSpectrum(compoundgc); //inserts spectrum
+                    //inserts peaks
                     num_peaks = compoundgc.getGcmsSpectrum().getGcms_peaksList().size();
                     for (j=1; j<=num_peaks; j++){
                         GCMS_Peaks gcms_peaks = compoundgc.getGcmsSpectrum().getGcms_peaksList().get(j-1);
@@ -284,13 +284,13 @@ public class GCMS_insert {
                     System.out.println("insert spectrum else");
                 }
 
-                System.out.println(i+" HECHO");
+                System.out.println(i+" DONE");
             }
-            System.out.println("AÑADIDO");
+            System.out.println("ADDED");
 
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-    }*/
+    }
 
 }
