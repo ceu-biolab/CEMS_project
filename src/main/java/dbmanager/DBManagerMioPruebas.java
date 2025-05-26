@@ -27,9 +27,9 @@ import static utilities.FileIO.readStringFromFile;
 
 public class DBManagerMioPruebas {
 
-    private static final String dbname = "jdbc:mysql://localhost/gcms?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true";
+    private static final String dbname = "jdbc:mysql://localhost/gcms_tfg?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true";
     private static final String dbuser = "root";
-    private static final String dbpassword = "";
+    private static final String dbpassword = "LaRambla_SQL";
 
 
     //SAME AS INSERT COMPOUND DBMANAGER
@@ -37,7 +37,7 @@ public class DBManagerMioPruebas {
      * Inserts a compound
      * @param compound
      */
-    public static void insertintoCompound(Compound compound) {
+    public static void insertintoCopiaCompound(Compound compound) {
         Connection connection = null;
         Statement statement = null;
         PreparedStatement prep=null;
@@ -85,7 +85,7 @@ public class DBManagerMioPruebas {
      * Insert identifiers
      * @param c
      */
-    public static void insertCompoundIdentifiers(Compound c) {
+    public static void insertCopiaCompoundIdentifiers(Compound c) {
         Connection connection = null;
         Statement statement = null;
         PreparedStatement prep=null;
@@ -284,10 +284,9 @@ public class DBManagerMioPruebas {
 
     /**
      * Inserts into compounds derivatization methods table the information (compound id and derivatization id) of a compound
-     * NOT ANYMORE
      * @param compoundgc
      */
-    /*public static void insertCompoundsDerMethods(CompoundGC compoundgc){
+    public static void insertCompoundsDerMethods(CompoundGC compoundgc){
         Connection connection = null;
         Statement statement = null;
         PreparedStatement prep=null;
@@ -319,16 +318,15 @@ public class DBManagerMioPruebas {
                 throw new RuntimeException(e);
             }
         }
-    }*/
+    }
 
     /**
      * Look if the compound is in the table
      * returnn 0 if it is not there
-     * NOT ANYMORE
      * @param id compound
      * @return id compound
      */
-    /*public static int getCompoundsIdDerMethods(int id){
+    public static int getCompoundsIdDerMethods(int id){
         Connection connection = null;
         Statement statement = null;
         PreparedStatement prep=null;
@@ -366,7 +364,7 @@ public class DBManagerMioPruebas {
             }
         }
         return id;
-    }*/
+    }
 
     /**
      * inserts gccolumn into gc_column table
@@ -451,7 +449,6 @@ public class DBManagerMioPruebas {
 
     /**
      * From a PreparedStatement obtains an int (gc_column_id)
-     * returns 0 if it does not exist
      * @param ps
      * @return gc_column_id
      */
@@ -512,7 +509,6 @@ public class DBManagerMioPruebas {
 
     /**
      * Gets the id of derivatization method from its name
-     * returns 0 if it does not exists
      * @param name
      * @return derivatization method id
      */
@@ -522,7 +518,7 @@ public class DBManagerMioPruebas {
         //PreparedStatement prep=null;
         int der_id = 0;
 
-        String sql = "SELECT derivatization_method_id FROM derivatization_methods WHERE derivatization_type LIKE ?";
+        String sql = "SELECT derivatization_id FROM derivatization_methods WHERE derivatization_type LIKE ?";
         try {
             connection = DriverManager.getConnection(dbname, dbuser, dbpassword);
             statement = connection.createStatement();
@@ -658,7 +654,7 @@ public class DBManagerMioPruebas {
             connection = DriverManager.getConnection(dbname, dbuser, dbpassword);
             statement = connection.createStatement();
 
-            String sql = "INSERT INTO gcms_spectrum (compound_id, derivatization_method_id) VALUES (?, ?)";
+            String sql = "INSERT INTO gcms_spectrum (compound_id, derivatization_id) VALUES (?, ?)";
             prep = connection.prepareStatement(sql);
             ////prep.setDouble(1, getCompoundIdfromName(compoundgc.getCompoundName())); //Since the name could give errors
             //prep.setDouble(1, getCompoundIdFromInchi(compoundgc.getINCHI()));
@@ -756,7 +752,7 @@ public class DBManagerMioPruebas {
         try {
             ResultSet rs = ps.executeQuery();
             if (rs.next()) {
-                id = rs.getInt("derivatization_method_id");
+                id = rs.getInt("derivatization_id");
             }
             rs.close();
 
@@ -878,7 +874,7 @@ public class DBManagerMioPruebas {
             System.out.println("key2: "+compoundInfo2.getINCHIKey());
             System.out.println("key22: "+compoundInfo2.getIdentifiersOwn().getInchi_key());
             System.out.println("smiles22: "+compoundInfo2.getIdentifiersOwn().getSmiles());
-            insertCompoundIdentifiers(compoundInfo2);
+            insertCopiaCompoundIdentifiers(compoundInfo2);
             *
             /*Compound 3 inserted
             Compound compoundInfo3 = PubchemRest.getCompoundFromName("1H-Pyrrole-2,5-dione, 3-ethyl-4-methyl-");
@@ -893,7 +889,7 @@ public class DBManagerMioPruebas {
             System.out.println("key3: "+compoundInfo3.getINCHIKey());
             System.out.println("key33: "+compoundInfo3.getIdentifiersOwn().getInchi_key());
             System.out.println("smiles33: "+compoundInfo3.getIdentifiersOwn().getSmiles());
-            insertCompoundIdentifiers(compoundInfo3);
+            insertCopiaCompoundIdentifiers(compoundInfo3);
             *
 
             //Compound 4 inserted
@@ -909,7 +905,7 @@ public class DBManagerMioPruebas {
             System.out.println("key4: "+compoundInfo4.getINCHIKey());
             System.out.println("key44: "+compoundInfo4.getIdentifiersOwn().getInchi_key());
             System.out.println("smiles44: "+compoundInfo4.getIdentifiersOwn().getSmiles());
-            insertCompoundIdentifiers(compoundInfo4);
+            insertCopiaCompoundIdentifiers(compoundInfo4);
             *
 
         } catch (IOException e) {
