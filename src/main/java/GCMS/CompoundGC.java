@@ -20,6 +20,10 @@ public class CompoundGC extends Compound {
     //WORKING
     private GCMS_Spectrum gcmsSpectrum;
 
+    public CompoundGC(){
+        super("AAAAA");
+    }
+
     //Some cases on excel that dont have the RT
     public CompoundGC(String name, double RI) {
         super(name);
@@ -32,6 +36,16 @@ public class CompoundGC extends Compound {
         super(name);
         this.RI = RI;
         this.RT = RT;
+    }
+
+    public CompoundGC(String name, String casId,
+                      Double RI, GCMS_Spectrum gcms_spectrum) {
+        super(name, casId);
+        this.RI = RI;
+        this.gcmsSpectrum = gcms_spectrum;
+
+        this.dertype = DerivatizationType.METHYL_CHLOROFORMATE;
+        this.gcColumn = GCColumn.STANDARD_NON_POLAR; //default
     }
 
     //For the RT and RI
@@ -54,6 +68,20 @@ public class CompoundGC extends Compound {
                       Identifier identifiersOwn, Identifier identifiersParent, GCMS_Spectrum gcmsSpectrum) {
         super(compound_id, name, casId, formula, monoisotopicMass,
                 compound_status, compound_type, logP, identifiersOwn, identifiersParent);
+        this.gcmsSpectrum = gcmsSpectrum;
+
+        this.dertype = DerivatizationType.METHYL_CHLOROFORMATE;
+        this.gcColumn = GCColumn.STANDARD_NON_POLAR; //default
+    }
+
+    //For the RI & spectrum
+    public CompoundGC(Integer compound_id, String name, String casId, String formula, Double monoisotopicMass,
+                      Integer compound_status, Integer compound_type, Double logP,
+                      Identifier identifiersOwn, Identifier identifiersParent,
+                      Double RI, GCMS_Spectrum gcmsSpectrum) {
+        super(compound_id, name, casId, formula, monoisotopicMass,
+                compound_status, compound_type, logP, identifiersOwn, identifiersParent);
+        this.RI = RI;
         this.gcmsSpectrum = gcmsSpectrum;
 
         this.dertype = DerivatizationType.METHYL_CHLOROFORMATE;
@@ -114,11 +142,16 @@ public class CompoundGC extends Compound {
     public String toString() {
         return "CompoundGC{" +
                 "Name=" + this.getCompoundName() +
-                ", RI=" + RI +
+                ", CasId=" + this.getCasId() +
+                ", Formula=" + this.getFormula() +
+                ", Mass=" + this.getMonoisotopicMass() + ",\n   " +
+                "Identifiers=" + this.getIdentifiersOwn() + ",\n   " +
+                //"Name=" + this.getRefPubChem() +
+                "RI=" + RI +
                 ", RT=" + RT +
                 ", dertype=" + dertype +
-                ", gcColumn='" + gcColumn + '\'' +
-                ", gcmsSpectrum=" + gcmsSpectrum +
+                ", gcColumn='" + gcColumn + ",\n   " +
+                "gcmsSpectrum=" + gcmsSpectrum +
                 '}';
     }
 

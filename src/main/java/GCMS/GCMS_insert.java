@@ -1,14 +1,17 @@
 package GCMS;
 
-import cems_project.Compound;
-import dbmanager.DBManagerMioPruebas;
-import dbmanager.PubchemRest;
-
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.logging.Logger;
+
+import static GCMS.ReadTxt.*;
 
 
 public class GCMS_insert {
+
+    private static final Logger LOGGER = Logger.getLogger(ReadTxt.class.getName());
 
     //Main to read the info of alkanes excel and try different functions
     /*public static void main(String[] args) {
@@ -235,7 +238,7 @@ public class GCMS_insert {
 
 
     //MAIN TO INSERT SPECTRUM -- REST MUST BE INSERTED --> USE THE OTHER MAIN
-    public static void main(String[] args) {
+    /*public static void main(String[] args) {
         int i;
         int j;
         try{
@@ -289,6 +292,203 @@ public class GCMS_insert {
             System.out.println("ADDED");
 
         } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }*/
+
+    /**
+     * Printing to know which compounds from the txt list fail when are used to obtain their complete information from PubChem
+     * @param compoundGCAndPossibleErrors
+     */
+    private static void printingValidation(CompoundGCAndPossibleErrors compoundGCAndPossibleErrors){
+        Map<Integer, CompoundGC> compoundGCMap = compoundGCAndPossibleErrors.getCompoundGC();
+        Map<Integer, CompoundGCInformationTxt> casIdNotfoundMap = compoundGCAndPossibleErrors.getCasIdNotFound();
+        Map<Integer, CompoundGCInformationTxt> nameNotFoundMap = compoundGCAndPossibleErrors.getNameNotFound();
+        Map<Integer, CompoundGCInformationTxt> inchiNotFoundMap = compoundGCAndPossibleErrors.getInchiNotFound();
+        Map<Integer, CompoundGCInformationTxt> smilesNotFoundMap = compoundGCAndPossibleErrors.getSmilesNotFound();
+
+        int i;
+        List<String> infoError = compoundGCAndPossibleErrors.getError();
+        System.err.println("ERROR WARNING: ");
+        for(i=0; i<infoError.size(); i++){
+            System.err.println(infoError.get(i));
+        }
+
+        i=0;
+        System.out.println("COMPOUNDS: ");
+        for (Map.Entry<Integer, CompoundGC> compounGC : compoundGCMap.entrySet()) {
+                /*System.out.println("ORIGINAL LIST POSITION: " + compounGC.getKey()
+                                + "\n" + compounGC.getValue().toString());*/
+            System.out.println(i+1 + ": ORIGINAL LIST POSITION: " + compounGC.getKey() + "; " +
+                    compounGC.getValue().getCompoundName() + "; "+compounGC.getValue().getINCHI());
+            i++;
+        }
+        System.out.println("Total compounds found: "+i);
+        System.out.println("Total compounds found count: "+compoundGCMap.size());
+
+        i=0;
+        System.out.println("\nCASID NOT FOUND: ");
+        for (Map.Entry<Integer, CompoundGCInformationTxt> casIdNotFound : casIdNotfoundMap.entrySet()) {
+            System.out.println("ORIGINAL LIST POSITION: " + casIdNotFound.getKey() + "; NAME: " + casIdNotFound.getValue().getCName());
+            i++;
+        }
+        System.out.println("Total compounds casId not found txt file: "+i);
+        System.out.println("Total compounds casId not found txt file count: "+casIdNotfoundMap.size());
+
+        i=0;
+        System.out.println("\nNAME NOT FOUND: ");
+        for (Map.Entry<Integer, CompoundGCInformationTxt> nameNotFound : nameNotFoundMap.entrySet()) {
+            System.out.println(i+1 +": ORIGINAL LIST POSITION: " + nameNotFound.getKey() + "; NAME: " + nameNotFound.getValue().getCName());
+            i++;
+        }
+        System.out.println("Total compounds name not found on PubChem: "+i);
+        System.out.println("Total compounds name not found on PubChem count: "+nameNotFoundMap.size());
+
+        i=0;
+        System.out.println("\nINCHI NOT FOUND: ");
+        for (Map.Entry<Integer, CompoundGCInformationTxt> inchiNotFound : inchiNotFoundMap.entrySet()) {
+            System.out.println("ORIGINAL LIST POSITION: " + inchiNotFound.getKey() + "; NAME: " + inchiNotFound.getValue().getCName());
+            i++;
+        }
+        System.out.println("Total compounds inchi not found txt file: "+i);
+        System.out.println("Total compounds inchi not found txt file count: "+inchiNotFoundMap.size());
+
+        i=0;
+        System.out.println("\nSMILES NOT FOUND: ");
+        for (Map.Entry<Integer, CompoundGCInformationTxt> smilesNotFound : smilesNotFoundMap.entrySet()) {
+            System.out.println("ORIGINAL LIST POSITION: " + smilesNotFound.getKey() + "; NAME: " + smilesNotFound.getValue().getCName());
+            i++;
+        }
+        System.out.println("Total compounds smiles not found txt file: "+i);
+        System.out.println("Total compounds smiles not found txt file count: "+ smilesNotFoundMap.size());
+
+        i=0;
+        System.out.println("\nCOMPOUNDS ALL INFO: ");
+        for (Map.Entry<Integer, CompoundGC> compounGC : compoundGCMap.entrySet()) {
+                /*System.out.println("ORIGINAL LIST POSITION: " + compounGC.getKey()
+                                + "\n" + compounGC.getValue().toString());*/
+            System.out.println(i+1 + ": ORIGINAL LIST POSITION: " + compounGC.getKey() + "; \n\t" +
+                    compounGC.getValue().toString());
+            i++;
+        }
+        System.out.println("Total compounds found: "+i);
+        System.out.println("Total compounds found count: "+compoundGCMap.size());
+    }
+
+    /**
+     * Upload/insert compoundGC to the DataBase
+     * @param compoundGCList
+     */
+    private static void uploadInformationCompoundGCDB(List<CompoundGC> compoundGCList) throws IOException {
+        CompoundGC compoundGC;
+        int i;
+        int size = compoundGCList.size();
+        System.out.println("Size: " + size + "\n");
+
+        /*for (i = 1; i <= compoundGCList.size(); i++) {
+            compoundGC = compoundGCList.get(i - 1);
+            System.out.println("C " + i + ": " + compoundGC);
+            int id = -1;
+            int idSpectrum = -1;
+
+            //TODO change the funciones a corretctas tablas
+            //todo hacer bucle para los spectros/picos
+
+            compoundGC.setCompound_id(DBManagerMioPruebas.getCompoundIdFromInchi(compoundGC.getINCHI()));
+            System.out.println("ID COmpo: " + compoundGC.getCompound_id());
+
+            if (compoundGC.getCompound_id() == 0) {//The compound is not found - we have to insert everything
+                DBManagerMioPruebas.insertintoCopiaCompound(compoundGC); //inserts into table of compounds
+                System.out.println("insert into compound");
+
+                compoundGC.setCompound_id(DBManagerMioPruebas.getCompoundIdfromName(compoundGC.getCompoundName()));
+                System.out.println("CID: "+compoundGC.getCompound_id());
+
+                DBManagerMioPruebas.insertCopiaCompoundIdentifiers(compoundGC); //inserts into identifiers
+                System.out.println("insert into identifiers");
+
+                DBManagerMioPruebas.insertDerivatizationMethod(compoundGC); //inserts derivatization method
+                System.out.println("insert dermethod");
+
+                DBManagerMioPruebas.insertGCColumn(compoundGC); //inserts the column type
+                System.out.println("insert gccolumn");
+                DBManagerMioPruebas.insertRIRT(compoundGC); //inserts the RI and RT of the compound
+                System.out.println("insert rirt");
+
+                //todo hacer bucle para todos los picos/spectrum -> crear funcion aparte
+                DBManagerMioPruebas.insertgcmsSpectrum(compoundGC); //INSERTS THE SPECTRUM
+                System.out.println("insert Spectrum");
+                DBManagerMioPruebas.insertGCMSPeaks(compoundGC); //INSERTS THE PEAKS OF THE SPECTRUM
+                System.out.println("insert Peaks");
+
+            } else { //if the compound exists in the tables
+                id = DBManagerMioPruebas.getgcrirtIdfromCompoundId(compoundGC.getCompound_id());
+                System.out.println("ID tabla: " + id);
+                if (id == 0) {//the ri rt are not inserted
+                    DBManagerMioPruebas.insertDerivatizationMethod(compoundGC); //inserts derivatization method
+                    DBManagerMioPruebas.insertGCColumn(compoundGC); //inserts column
+                    System.out.println("insert gccolumn");
+                    DBManagerMioPruebas.insertRIRT(compoundGC); //inserts RI & RT
+                    System.out.println("insert rtri else");
+
+                    //idSpectrum = DBManagerMioPruebas.getspectrumIdfromCompoundId(compoundGC.getCompound_id());
+                    //if(idSpectrum == 0) {//Spectrum does not exists
+                        //todo hacer bucle para todos los picos/spectrum -> crear funcion aparte
+                        DBManagerMioPruebas.insertgcmsSpectrum(compoundGC); //INSERTS THE SPECTRUM
+                        System.out.println("insert Spectrum");
+                        DBManagerMioPruebas.insertGCMSPeaks(compoundGC); //INSERTS THE PEAKS OF THE SPECTRUM
+                        System.out.println("insert Peaks");
+                    //}
+                } else { //ri rt are inserted
+                    //idSpectrum = DBManagerMioPruebas.getspectrumIdfromCompoundId(compoundGC.getCompound_id());
+                    //if(idSpectrum == 0) {//Spectrum does not exists
+                        //todo hacer bucle para todos los picos/spectrum -> crear funcion aparte
+                        DBManagerMioPruebas.insertgcmsSpectrum(compoundGC); //INSERTS THE SPECTRUM
+                        System.out.println("insert Spectrum");
+                        DBManagerMioPruebas.insertGCMSPeaks(compoundGC); //INSERTS THE PEAKS OF THE SPECTRUM
+                        System.out.println("insert Peaks");
+                    //}
+                }
+
+                System.out.println("Everything is inserted");
+
+            }
+        }*/
+    }
+
+
+    //MAIN TO INSERT COMPOUNDS FROM TXT getGCMSCloroformiatesLibrary()
+    public static void main(String[] args) {
+        //String fileTxt = "C:\\Users\\marta\\Documents\\Uni\\Biomedica_TFG\\correctData\\Pruebas_usartxt.txt";
+        String fileTxt = "C:\\Users\\marta\\Documents\\Uni\\Biomedica_TFG\\correctData\\gcms_cloroformiates_library.txt";
+        try{
+            int i;
+
+            List<CompoundGCInformationTxt> compoundGCInformationTxts = getCompoundFromTxt(fileTxt);
+
+            //TODO 2-BUSCOR COMPOUESTOS NO NOMBRE -> Usar inchi/smiles -> esperar resto
+            //Compound and errors: compounds not found by name, casId, inchi or smile
+            CompoundGCAndPossibleErrors compoundGCAndPossibleErrors = getGCMSCloroformiatesFromTxt(compoundGCInformationTxts);
+
+            System.out.println("\nMAIN");
+            CompoundGC compoundgc;
+
+            printingValidation(compoundGCAndPossibleErrors);
+
+            Map<Integer, CompoundGC> compoundGCMap = compoundGCAndPossibleErrors.getCompoundGC();
+            //THEY ARE NOT INDEPENDENT COPIES, IF THE INFORMATION OF compoundGCList IS MODIFIED THEN compoundGCMap IS ALSO CHANGED
+            List<CompoundGC> compoundGCList = new ArrayList<>(compoundGCMap.values());
+
+            /*//TODO 3-SUBIR DATOS A DB -> en ello
+            /uploadInformationCompoundGCDB(compoundGCList);*/
+
+            System.out.println("\nFINISH");
+
+
+        }
+        catch (IOException e) {
+            //System.out.println("Error: " + e.getStackTrace() + "\n");
+           //System.out.println("Error: " + e + "\n");
             throw new RuntimeException(e);
         }
     }

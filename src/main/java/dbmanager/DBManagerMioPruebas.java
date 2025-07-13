@@ -27,7 +27,8 @@ import static utilities.FileIO.readStringFromFile;
 
 public class DBManagerMioPruebas {
 
-    private static final String dbname = "jdbc:mysql://localhost/gcms_tfg?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true";
+    //private static final String dbname = "jdbc:mysql://localhost/gcms_tfg?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true";
+    private static final String dbname = "jdbc:mysql://localhost/gcms_v5?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true";
     private static final String dbuser = "root";
     private static final String dbpassword = "LaRambla_SQL";
 

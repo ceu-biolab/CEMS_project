@@ -526,7 +526,7 @@ public class ReadExcel {
     }*/
 
     //MAIN TO TRY readexcelcompoundrtriinchi()
-   /*public static void main(String[] args) {
+   public static void main(String[] args) {
        //String filexcel = "src/main/resources/gcms_excels/Compound_RT-RI-Inchi.xlsx";
        String filexcel2 = "src/main/resources/gcms_excels/CorrectInfo_CompoundsRT-RI.xlsx";
        try{
@@ -542,10 +542,10 @@ public class ReadExcel {
        }catch (IOException e) {
            throw new RuntimeException(e);
        }
-   }*/
+   }
 
     //MAIN TO TRY readexcelcompoundspectrum()
-    public static void main(String[] args) {
+    /*public static void main(String[] args) {
         String filexcel2 = "src/main/resources/gcms_excels/CEU_Mass_Mediator_mz_Rel_Abund.xlsx";
         try{
             List<CompoundGC> compoundgcList = readexcelcompoundspectrum(filexcel2);
@@ -561,6 +561,6 @@ public class ReadExcel {
         }catch (IOException e) {
             throw new RuntimeException(e);
         }
-    }
+    }*/
 
 }
