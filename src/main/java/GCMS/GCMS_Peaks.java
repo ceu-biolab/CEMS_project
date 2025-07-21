@@ -36,7 +36,7 @@ public class GCMS_Peaks {
 
     @Override
     public String toString() {
-        return "\n         GCMS_Peaks{" +
+        return "\n\t\t\tGCMS_Peaks{" +
                 "mz=" + mz +
                 ", intensity=" + intensity +
                 '}';

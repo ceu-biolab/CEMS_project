@@ -33,9 +33,9 @@ public class GCMS_Spectrum {
             information = information +
         }*/
 
-        return "GCMS_Spectrum{" +
+        return "\n\tGCMS_Spectrum{" +
                 //"gcms_peaksList=" + gcms_peaksList.get(0) +
-                "\n      gcms_peaksList=" + gcms_peaksList +
+                "\n\t\tgcms_peaksList=" + gcms_peaksList +
                 '}';
     }
 }

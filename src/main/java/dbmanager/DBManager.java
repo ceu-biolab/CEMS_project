@@ -5,6 +5,8 @@
  */
 package dbmanager;
 
+import GCMS.CompoundGC;
+import GCMS.GCMS_Peaks;
 import cems_project.CEMSExperimentalConditions;
 import cems_project.Fragment;
 import cems_project.CEMSCompound;
@@ -53,6 +55,45 @@ public class DBManager {
             statement = this.connection.createStatement();
         } catch (SQLException ex) {
             Logger.getLogger(DBManager.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    /**
+     * Close connection resource
+     */
+    public void closeConnectionResource() {
+        if (this.connection != null) {
+            try {
+                this.connection.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    /**
+     * Close Statement resource
+     */
+    public void closeStatementResource() {
+        if (this.statement != null) {
+            try {
+                this.statement.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    /**
+     * Close PrepareStatement resource
+     */
+    public void closePrepareStatementResource(PreparedStatement prep) {
+        if (prep != null) {
+            try {
+                prep.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -792,6 +833,406 @@ public class DBManager {
 //        System.out.println("\n GENERATED KEY of " + actualizacion + " : " + id);
         return id;
     }
+
+    /**
+     * Inserts a compound TODO
+     * @param compound
+     */
+    public int insertIntoCompounds(CompoundGC compound) {
+        PreparedStatement prep=null;
+        int compound_id = 0;
+
+        String sql = "INSERT INTO compounds (cas_id, compound_name, formula, mass, charge_type, charge_number, " +
+                "formula_type, compound_type, compound_status, formula_type_int, logP) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        try {
+            prep = this.connection.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS);
+            prep.setString(1, compound.getCasId()); //could be null
+            prep.setString(2, compound.getCompoundName());
+            prep.setString(3, compound.getFormula());
+            //prep.setDouble(4, compound.getMonoisotopicMass());
+            prep.setObject(4, compound.getMonoisotopicMass(), java.sql.Types.DOUBLE);
+            prep.setInt(5, compound.getCharge_type());
+            prep.setInt(6, compound.getCharge_number());
+            prep.setString(7, compound.getFormula_type());
+            prep.setInt(8, compound.getCompound_type());
+            prep.setInt(9, compound.getCompound_status());
+            prep.setInt(10, compound.getFormula_type_int());
+            prep.setObject(11, compound.getLogP(), java.sql.Types.DOUBLE);
+            /*Double logP = compound.getLogP();
+            if(logP!=null) {
+                prep.setDouble(11, compound.getLogP()); //could be null
+            } else{
+                prep.setNull(11, 2);
+            }*/
+            prep.executeUpdate();
+
+            try (ResultSet rs = prep.getGeneratedKeys()) {
+                if (rs.next()) {
+                    compound_id = rs.getInt(1);
+                }
+            } catch (SQLException ex) {
+                Logger.getLogger(DBManager.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        } catch (SQLException ex) {
+            Logger.getLogger(DBManager.class.getName()).log(Level.SEVERE, null, ex);
+        } finally { //ITS IMPORTANT TO CLOSE PREPARESTATEMENT
+            closePrepareStatementResource(prep);
+        }
+        return compound_id;
+    }
+
+    /**
+     * Insert identifiers
+     * @param c
+     */
+    public void insertIntoCompoundIdentifiers(CompoundGC c) {
+        //Connection connection = null;
+        //Statement statement = null;
+        PreparedStatement prep=null;
+        String sql = "INSERT INTO compound_identifiers (compound_id, inchi, inchi_key, smiles) VALUES (?, ?, ?, ?)";;
+        try {
+            //connection = DriverManager.getConnection(dbname, dbuser, dbpassword);
+            //statement = connection.createStatement();
+
+            prep = this.connection.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS);
+            prep.setInt(1, c.getCompound_id());
+            prep.setString(2, c.getINCHI());
+            prep.setString(3, c.getINCHIKey());
+            prep.setString(4, c.getIdentifiersOwn().getSmiles());
+
+            prep.executeUpdate(); //the information is inserted
+            //prep.close();
+
+        } catch (SQLException ex) {
+            Logger.getLogger(DBManager.class.getName()).log(Level.SEVERE, null, ex);
+        }finally {
+            // It's important to close the statement when you are done with it
+            closePrepareStatementResource(prep);
+        }
+    }
+
+    /**
+     * Inserts into derivatization methods table the derivatization type of the compound
+     * Only if it does not exist
+     * @param compoundgc
+     */
+    public void insertDerivatizationMethod(CompoundGC compoundgc){
+        //Connection connection = null;
+        //Statement statement = null;
+        PreparedStatement prep=null;
+
+        try {
+            String derType = compoundgc.getDertype().toString();
+            if(getDerivatizationMethodIdfromDerType(derType)==0){ //IF IS 0 THEN IT DOESN'T EXIST IN TABLE
+                String sql = "INSERT INTO derivatization_methods (derivatization_type) VALUES (?)";
+                prep = this.connection.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS);
+                prep.setString(1, derType);
+
+                prep.executeUpdate();
+            }
+        } catch (SQLException ex) {
+            Logger.getLogger(DBManager.class.getName()).log(Level.SEVERE, null, ex);
+        } finally {
+            closePrepareStatementResource(prep);
+        }
+    }
+
+    /**
+     * Gets the id of derivatization method from its name
+     * @param name
+     * @return derivatization method id
+     */
+    public int getDerivatizationMethodIdfromDerType(String name) {
+        PreparedStatement prep=null;
+        int der_id = 0;
+
+        String sql = "SELECT derivatization_method_id FROM derivatization_methods WHERE derivatization_type LIKE ?";
+        try {
+            prep = this.connection.prepareStatement(sql);
+            prep.setString(1, name);
+            der_id = getIntDerIdfromPrepStatementDerType(prep);
+            return der_id;
+
+        } catch (SQLException ex) {
+            Logger.getLogger(DBManager.class.getName()).log(Level.SEVERE, null, ex);
+        }finally {
+            closePrepareStatementResource(prep);
+        }
+        return der_id;
+    }
+
+    /**
+     * From a PreparedStatement obtains an int (derivatization method id)
+     * @param ps
+     * @return derivatization method id
+     */
+    private int getIntDerIdfromPrepStatementDerType(PreparedStatement ps) {
+        int idDer = 0;
+        try {
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                //idDer = rs.getInt("derivatization_id");
+                idDer = rs.getInt("derivatization_method_id");
+            }
+            rs.close();
+        } catch (SQLException ex) {
+            Logger.getLogger(DBManager.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return idDer;
+    }
+
+    /**
+     * inserts gccolumn into gc_column table
+     * @param compoundgc
+     */
+    public void insertGCColumn(CompoundGC compoundgc){
+        PreparedStatement prep=null;
+
+        try {
+            String gcCol = compoundgc.getGcColumn().toString();
+            //String sql = "INSERT INTO gc_column (gc_ri_rt_id, gc_column_name) VALUES (?, ?)";
+            //if(getDerivatizationMethodIdfromDerType(gcCol)==0){
+            if(getGCColumnIdfromGCColumnType(gcCol)==0){//GcColumn is not in the tables --> insert
+                String sql = "INSERT INTO gc_column (gc_column_name) VALUES (?)";
+                prep = this.connection.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS);
+
+                prep.setString(1, gcCol);
+
+                prep.executeUpdate();
+            }
+
+        } catch (SQLException ex) {
+            Logger.getLogger(DBManager.class.getName()).log(Level.SEVERE, null, ex);
+        } finally {
+            closePrepareStatementResource(prep);
+        }
+    }
+
+    /**
+     * Gets the id of gccolumn type from its name
+     * @param name
+     * @return gccolumn id
+     */
+    public int getGCColumnIdfromGCColumnType(String name) {
+        PreparedStatement prep=null;
+        int column_id = 0;
+
+        String sql = "SELECT gc_column_id FROM gc_column WHERE gc_column_name LIKE ?";
+        try {
+            prep = this.connection.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS);
+            prep.setString(1, name);
+            column_id = getIntColIdfromPrepStatementGcColumnName(prep);
+            return column_id;
+
+        } catch (SQLException ex) {
+            Logger.getLogger(DBManager.class.getName()).log(Level.SEVERE, null, ex);
+        }finally {
+            closePrepareStatementResource(prep);
+        }
+        return column_id;
+    }
+
+    /**
+     * From a PreparedStatement obtains an int (gc_column_id)
+     * @param ps
+     * @return gc_column_id
+     */
+    private int getIntColIdfromPrepStatementGcColumnName(PreparedStatement ps) {
+        int idColumnGC = 0;
+        try {
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                idColumnGC = rs.getInt("gc_column_id");
+            }
+            rs.close();
+
+        } catch (SQLException ex) {
+            Logger.getLogger(DBManager.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return idColumnGC;
+    }
+
+    /**
+     * Inserts into gc-ri-rt the information (RI, compound id, derivatization id, gc_column_id) of a compound
+     * @param compoundgc
+     */
+    public void insertRIRT(CompoundGC compoundgc){
+        //Connection connection = null;
+        //Statement statement = null;
+        PreparedStatement prep=null;
+
+        try {
+            //connection = DriverManager.getConnection(dbname, dbuser, dbpassword);
+            //statement = connection.createStatement();
+
+            //String sql = "INSERT INTO gc_ri_rt (ri, rt, compound_id, derivatization_method_id) VALUES (?, ?, ?, ?)";
+            //String sql = "INSERT INTO gc_ri_rt (compound_id, derivatization_method_id, gc_column_id, ri, rt) VALUES (?, ?, ?, ?, ?)";
+            String sql = "INSERT INTO gc_ri_rt (compound_id, derivatization_method_id, gc_column_id, ri) VALUES (?, ?, ?, ?)";
+            prep = this.connection.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS);
+
+            prep.setDouble(1, compoundgc.getCompound_id());
+
+            String dertype = compoundgc.getDertype().toString();
+            int derivatizationMethodId = getDerivatizationMethodIdfromDerType(dertype);
+            prep.setDouble(2, derivatizationMethodId);
+
+            String columnType = compoundgc.getGcColumn().toString();
+            int gc_column_id = getGCColumnIdfromGCColumnType(columnType);
+            prep.setDouble(3, gc_column_id);
+
+            prep.setDouble(4, compoundgc.getRI());
+            //prep.setDouble(5, compoundgc.getRT()); //default null
+            //prep.setObject(11, compound.getLogP(), java.sql.Types.DOUBLE);
+
+
+            prep.executeUpdate();
+            //prep.close();
+
+        } catch (SQLException ex) {
+            Logger.getLogger(DBManager.class.getName()).log(Level.SEVERE, null, ex);
+        } finally {
+            closePrepareStatementResource(prep);
+        }
+    }
+
+    /**
+     * Gets the id of gc_ri_rt from the compound id
+     * @param cid compound id
+     * @return gc_ri_rt id
+     */
+    public int getgcrirtIdfromCompoundId(int cid) {
+        //Connection connection = null;
+        //Statement statement = null;
+        PreparedStatement ps = null;
+
+        int gcrirt_id = 0;
+
+        String sql = "SELECT gc_ri_rt_id FROM gc_ri_rt WHERE compound_id LIKE ?";
+        try {
+            //connection = DriverManager.getConnection(dbname, dbuser, dbpassword);
+            //statement = connection.createStatement();
+
+            ps = this.connection.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS);
+            ps.setInt(1, cid);
+            gcrirt_id = getIntGCColumnIdfromPrepStatementgccolumn(ps);
+            return gcrirt_id;
+
+        } catch (SQLException ex) {
+            Logger.getLogger(DBManager.class.getName()).log(Level.SEVERE, null, ex);
+        }finally {
+            closePrepareStatementResource(ps);
+        }
+        return gcrirt_id;
+    }
+
+    /**
+     * From a PreparedStatement obtains an int (gc_ri_rt id)
+     * @param ps
+     * @return compound id
+     */
+    private int getIntGCColumnIdfromPrepStatementgccolumn(PreparedStatement ps) {
+        int gcColumnId = 0;
+        try {
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                gcColumnId = rs.getInt("gc_ri_rt_id");
+            }
+            rs.close();
+
+        } catch (SQLException ex) {
+            Logger.getLogger(DBManager.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return gcColumnId;
+    }
+
+    /**
+     * Inserts into gcms_spectrum the information (compound id and derivatization id) of a compound
+     * @param compoundgc
+     */
+    public int insertgcmsSpectrum(CompoundGC compoundgc){
+        PreparedStatement prep = null;
+        int spectrum_id =0;
+
+        try {
+            //int size_GCMS_Spectra = compoundgc.getGcmsSpectrum().size();
+            //for (int i = 0; i < size_GCMS_Spectra; i++) {
+                String sql = "INSERT INTO gcms_spectrum (compound_id, derivatization_method_id) VALUES (?, ?)";
+                prep = this.connection.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS);
+
+                prep.setDouble(1, compoundgc.getCompound_id());
+                String dertype = compoundgc.getDertype().toString();
+                prep.setDouble(2, getDerivatizationMethodIdfromDerType(dertype));
+
+                prep.executeUpdate();
+
+                spectrum_id = getIntfromPrepStatementSpectrum(prep);
+                //return spectrum_id;todo cambiado pero no comprobado!!!
+            //}
+        }  catch (SQLException ex) {
+            Logger.getLogger(DBManager.class.getName()).log(Level.SEVERE, null, ex);
+        } finally {
+            closePrepareStatementResource(prep);
+            //return spectrum_id;
+        }
+        return spectrum_id;
+    }
+
+    /**
+     * From a PreparedStatement obtains an int (gcms spectrum id)
+     * @param ps
+     * @return spectrum id
+     */
+    private static int getIntfromPrepStatementSpectrum(PreparedStatement ps) {
+        int id = 0;
+        // Be aware that the connection should be initialized (calling the method connectToDB)
+        try {
+            //ResultSet rs = ps.executeQuery();
+            ResultSet rs = ps.getGeneratedKeys();
+            if (rs.next()) {
+                //id = rs.getInt("gcms_spectrum_id");
+                id = rs.getInt(1);
+            }
+            rs.close();
+
+        } catch (SQLException ex) {
+            Logger.getLogger(DBManager.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return id;
+    }
+
+    /**
+     * Inserts peaks into gcms_peaks table
+     * @param spectrum_id
+     * @param gcms_peaks
+     */
+    public void insertGCMSPeaks(int spectrum_id, GCMS_Peaks gcms_peaks){
+        //Connection connection = null;
+        //Statement statement = null;
+        PreparedStatement prep=null;
+
+        try {
+            //connection = DriverManager.getConnection(dbname, dbuser, dbpassword);
+            //statement = connection.createStatement();
+
+            String sql = "INSERT INTO gcms_peaks (gcms_spectrum_id, mz, intensity) VALUES (?, ?, ?)";
+            prep = this.connection.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS);
+
+            //prep.setDouble(1, getgcmsSpectrumIdfromCompoundId(compoundgc.getCompound_id()));
+            prep.setDouble(1, spectrum_id);
+            prep.setDouble(2, gcms_peaks.getMz());
+            prep.setDouble(3, gcms_peaks.getIntensity());
+            prep.executeUpdate();
+            //prep.close();
+
+        }  catch (SQLException ex) {
+            Logger.getLogger(DBManager.class.getName()).log(Level.SEVERE, null, ex);
+        } finally {
+            closePrepareStatementResource(prep);
+        }
+    }
+
+
 
     public static void main(String[] args) {
 

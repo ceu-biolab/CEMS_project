@@ -112,21 +112,22 @@ public class Compound {
         return monoisotopicMass;
     }
 
-    //    public Integer getCharge_type() {
-//        return charge_type;
-//    }
-//
-//    public Integer getCharge_number() {
-//        return charge_number;
-//    }
-//
-//    public String getFormula_type() {
-//        return formula_type;
-//    }
-//
-//    public Integer getFormula_type_int() {
-//        return formula_type_int;
-//    }
+    public Integer getCharge_type() {
+        return charge_type;
+    }
+
+    public Integer getCharge_number() {
+        return charge_number;
+    }
+
+    public String getFormula_type() {
+        return formula_type;
+    }
+
+    public Integer getFormula_type_int() {
+        return formula_type_int;
+    }
+
     public Integer getCompound_status() {
         return compound_status;
     }

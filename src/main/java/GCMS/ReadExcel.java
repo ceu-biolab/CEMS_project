@@ -312,11 +312,12 @@ public class ReadExcel {
             compoundInfo = PubchemRest.getCompoundFromName(sheetname);
             //PubchemRest.getCompoundsFromInchis();
 
+            /*This is correct
             compoundgc = new CompoundGC(compoundInfo.getCompound_id(),
                     compoundInfo.getCompoundName(),
                     compoundInfo.getCasId(), compoundInfo.getFormula(), compoundInfo.getMonoisotopicMass(), compoundInfo.getCompound_status(),
                     compoundInfo.getCompound_type(), compoundInfo.getLogP(), compoundInfo.getIdentifiersOwn(), compoundInfo.getIdentifiersParent(),
-                    spectrum);
+                    spectrum);*/
 
             //System.out.println("Compound: "+compoundgc);
             compoundgcList.add(compoundgc);

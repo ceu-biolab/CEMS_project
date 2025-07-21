@@ -1,21 +1,14 @@
 package GCMS;
 
-import CCS.CompoundInfo;
 import cems_project.Compound;
 import dbmanager.PubchemRest;
-import exceptions.CompoundNameException;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import static org.apache.log4j.builders.appender.SocketAppenderBuilder.LOGGER;
 
 public class ReadTxt {
 
@@ -27,6 +20,8 @@ public class ReadTxt {
     private static final String INCHI = "INCHI:";
     private static final String SMILES = "SMILES:";
     private static final String CAS = "CAS:";
+    private static final String MONOISOTOPIC = "MONOISOTOPIC:";
+    private static final String INCHIKEY = "INCHIKEY:";
     private static final String BEGIN_IONS = "BEGIN IONS";
     private static final String END_IONS = "END IONS";
 
@@ -72,6 +67,9 @@ public class ReadTxt {
         String casId = "";
         String inchi = "NotRelevant";
         String smiles = "NotRelevant";
+        String inchiKey = "NotRelevant";
+        String monoisotopicMassString = "";
+        Double monoisotopicMass = null;
 
         List<CompoundGCInformationTxt> compoundGCInformationTxtList = new ArrayList<>();
 
@@ -83,6 +81,7 @@ public class ReadTxt {
         List<GCMS_Peaks> gcms_peaksList_Normalized = new ArrayList<>();
 
         GCMS_Spectrum gcmsSpectrum;
+        List<GCMS_Spectrum> gcmsSpectra = new ArrayList<>();
 
         for(i=0; i< AllLines.size(); i++){
             if(((AllLines.get(i) !=null) || (!AllLines.get(i).trim().isEmpty()))){
@@ -101,246 +100,120 @@ public class ReadTxt {
                     if(smiles.equals("")){
                         smiles = "NotRelevant"; //We will get it in the next steps
                     }
-                } else if (AllLines.get(i).toUpperCase().contains((RETENTION_INDEX))) {
+                } else if (AllLines.get(i).toUpperCase().contains(INCHIKEY)) {
+                    inchiKey = AllLines.get(i).substring(INCHIKEY.length()).trim();
+                    if(inchiKey.equals("")){
+                        inchiKey = "NotRelevant"; //We will get it in the next steps
+                    }
+                }else if (AllLines.get(i).toUpperCase().contains(RETENTION_INDEX)) {
                     RIString = AllLines.get(i).substring(RETENTION_INDEX.length()).trim();
                     RIString = RIString.replace(",", ".");
                     RI = Double.parseDouble(RIString);
+                } else if (AllLines.get(i).toUpperCase().contains(MONOISOTOPIC)) {
+                    monoisotopicMassString = AllLines.get(i).substring(MONOISOTOPIC.length()).trim();
+                    monoisotopicMassString = monoisotopicMassString.replace(",", ".");
+                    monoisotopicMass = Double.parseDouble(monoisotopicMassString);
                 } else if (AllLines.get(i).toUpperCase().contains(CAS)) {
                     casId = AllLines.get(i).substring(CAS.length()).trim();
                     if(casId.equals("")){
                         casId = "NotFound";
                     }
-                } else if(AllLines.get(i).toUpperCase().contains(BEGIN_IONS)){
-                    i++;//NOT USE LINE: 'BEGIN IONS'
+                } else if(AllLines.get(i).toUpperCase().contains(BEGIN_IONS)){//TODO que lea todos espectros
+                    //i++;//NOT USE LINE: 'BEGIN IONS'
 
-                    List<GCMS_Peaks> gcms_peaksList = new ArrayList<>();
+                    List<GCMS_Peaks> gcms_peaksList;// = new ArrayList<>();
                     //System.out.println("\nNEW COMPOUND "+j);
-                    while(!AllLines.get(i).equalsIgnoreCase(END_IONS)){
-                        GCMS_Peaks gcms_peaks = new GCMS_Peaks();
-
-                        String info = AllLines.get(i).trim();
-                        info = info.replace(",", ".");
-                        // '\\s+' --> FOR SPACES (' '), TAB (\t) OR NEW LINE (\n); '+' -> CONSECUTIVE SPACES
-                        String[] peaks = info.split("\\s+");
-                        //System.out.println("Peaks: "+peaks[0]+";"+peaks[1]);
-                        double mz = Double.parseDouble(peaks[0]);
-                        double intensity = Double.parseDouble(peaks[1]);
-
-                        gcms_peaks.setMz(mz);
-                        gcms_peaks.setIntensity(intensity);
-
-                        gcms_peaksList.add(gcms_peaks);
-
+                    do{
                         i++;
-                    }
+                        gcms_peaksList = new ArrayList<>();
+                        while(!AllLines.get(i).equalsIgnoreCase(END_IONS)){
+                            GCMS_Peaks gcms_peaks = new GCMS_Peaks();
+
+                            String info = AllLines.get(i).trim();
+                            info = info.replace(",", ".");
+                            // '\\s+' --> FOR SPACES (' '), TAB (\t) OR NEW LINE (\n); '+' -> CONSECUTIVE SPACES
+                            String[] peaks = info.split("\\s+");
+                            //System.out.println("Peaks: "+peaks[0]+";"+peaks[1]);
+                            double mz = Double.parseDouble(peaks[0]);
+                            double intensity = Double.parseDouble(peaks[1]);
+
+                            gcms_peaks.setMz(mz);
+                            gcms_peaks.setIntensity(intensity);
+
+                            gcms_peaksList.add(gcms_peaks);
+
+                            i++;
+                        }
+                        gcms_peaksList_Normalized = normalizedPeakList(gcms_peaksList);
+                        //System.out.println("GCMSPEAKList: "+gcms_peaksList_Normalized);
+                        gcmsSpectrum = new GCMS_Spectrum();
+                        gcmsSpectrum.setGcms_peaksList(gcms_peaksList_Normalized);
+                        gcmsSpectra.add(gcmsSpectrum);
+                        i++;
+                    }while (i < AllLines.size() && AllLines.get(i).equalsIgnoreCase(BEGIN_IONS));
                     j++;
-                    gcms_peaksList_Normalized = normalizedPeakList(gcms_peaksList);
+                    /*gcms_peaksList_Normalized = normalizedPeakList(gcms_peaksList);
                     //System.out.println("GCMSPEAKList: "+gcms_peaksList_Normalized);
+                    gcmsSpectrum = new GCMS_Spectrum();
+                    gcmsSpectrum.setGcms_peaksList(gcms_peaksList_Normalized);
+                    gcmsSpectra.add(gcmsSpectrum);*/
                 }
             }
             //ONLY IF ALL THE INFORMATION IS SAVED, compoundGCInformationTxtList CAN BE CREATED
-            if((!casId.equals("")) && (!gcms_peaksList_Normalized.isEmpty())) {
-                gcmsSpectrum = new GCMS_Spectrum();
-                gcmsSpectrum.setGcms_peaksList(gcms_peaksList_Normalized);
+            //if((!casId.equals("")) && (!gcms_peaksList_Normalized.isEmpty()) /*&& (RI!=-1.0)*/) {
+            if((!casId.equals("")) && (!gcms_peaksList_Normalized.isEmpty()) /*&& (RI!=-1.0)*/) {
+                //gcmsSpectrum = new GCMS_Spectrum();
+                //gcmsSpectrum.setGcms_peaksList(gcms_peaksList_Normalized);
                 CompoundGCInformationTxt compoundGCInformationTxt;
 
-                if (!inchi.equals("NotRelevant") && !smiles.equals("NotRelevant")){
-                    compoundGCInformationTxt = new CompoundGCInformationTxt(numberOriginalList,
-                            compoundName, RI, casId, gcmsSpectrum, inchi, smiles);
-                    //System.out.println("En if: "+compoundGCInformationTxt.toString());
-                } else {
-                    compoundGCInformationTxt = new CompoundGCInformationTxt(numberOriginalList,
-                            compoundName, RI, casId, gcmsSpectrum);
-                }
+                //if(RI!=-1.0){
+                    if (!inchi.equals("NotRelevant") && !smiles.equals("NotRelevant")){
+                        compoundGCInformationTxt = new CompoundGCInformationTxt(numberOriginalList,
+                                //compoundName, RI, casId, gcmsSpectrum, inchi, smiles, monoisotopicMass);
+                                //compoundName, RI, casId, gcmsSpectra, inchi, smiles, monoisotopicMass);
+                                compoundName, RI, casId, gcmsSpectra, inchi, inchiKey, smiles, monoisotopicMass);
 
+                        //System.out.println("En if: "+compoundGCInformationTxt.toString());
+                        /*compoundGCInformationTxtList.add(compoundGCInformationTxt);
+
+                        //RESET casId & gcms_peaksList_Normalized SO THAT IT DOES NOT CREAT A NEW COMPOUND WITH THE WRONG INFORMATION
+                        casId = "";
+                        RIString = "";
+                        RI = -1.0;
+                        gcms_peaksList_Normalized = new ArrayList<>();
+                        inchi = "NotRelevant";
+                        smiles = "NotRelevant";*/
+                    } else {
+                        compoundGCInformationTxt = new CompoundGCInformationTxt(numberOriginalList,
+                                //compoundName, RI, casId, gcmsSpectrum);
+                                compoundName, RI, casId, gcmsSpectra);
+                        /*compoundGCInformationTxtList.add(compoundGCInformationTxt);
+
+                        //RESET casId & gcms_peaksList_Normalized SO THAT IT DOES NOT CREAT A NEW COMPOUND WITH THE WRONG INFORMATION
+                        casId = "";
+                        RIString = "";
+                        RI = -1.0;
+                        gcms_peaksList_Normalized = new ArrayList<>();
+                        inchi = "NotRelevant";
+                        smiles = "NotRelevant";*/
+                    }
+               // }
                 compoundGCInformationTxtList.add(compoundGCInformationTxt);
 
                 //RESET casId & gcms_peaksList_Normalized SO THAT IT DOES NOT CREAT A NEW COMPOUND WITH THE WRONG INFORMATION
                 casId = "";
+                RIString = "";
+                RI = -1.0;
                 gcms_peaksList_Normalized = new ArrayList<>();
                 inchi = "NotRelevant";
                 smiles = "NotRelevant";
+                inchiKey = "NotRelevant";
+                monoisotopicMassString = "";
+                monoisotopicMass = null;
+                gcmsSpectra = new ArrayList<>();
             }
         }
         return compoundGCInformationTxtList;
-    }
-
-    /**
-     * MAL!!!???? -> It prints inside this function -> not good
-     * From the list of CompoundGCInformationTxt will get all their relevant information from PubChem website
-     * @param compoundGCInformationTxts List with the information of the txt file
-     * @return CompoundGCAndPossibleErrors Is a class that has a list of compoundsGC, a map with the
-     * 'original index compound' (the one from the txt file) and CompoundGCInformationTxt
-     * @throws CompoundNameException Exception that occurs when the name of the compound is not found on PubChem
-     * @throws IOException
-     */
-    public static CompoundGCAndPossibleErrors getGCMSCloroformiatesFromLibraryTxt
-        (List<CompoundGCInformationTxt> compoundGCInformationTxts)
-            throws CompoundNameException, IOException {
-
-        CompoundGCAndPossibleErrors compoundGCAndPossibleErrors = new CompoundGCAndPossibleErrors();
-
-        int i;
-        for(i=0; i<compoundGCInformationTxts.size(); i++){
-            String formula = "";
-            try{
-                CompoundGC compoundGC;
-                Compound compoundInfo;
-                if (/*compoundGCInformationTxts.get(i).getCasId() != null && !compoundGCInformationTxts.get(i).getCasId().isEmpty()
-                        &&*/ !compoundGCInformationTxts.get(i).getCasId().equalsIgnoreCase("NotFound")) {
-
-                    int cid = PubchemRest.getPCIDFromCasId(compoundGCInformationTxts.get(i).getCasId());
-                    compoundInfo = PubchemRest.getCompoundFromPCID(cid);
-                    formula = compoundInfo.getFormula();
-                    compoundGC = new CompoundGC(compoundInfo.getCompound_id(),
-                            compoundGCInformationTxts.get(i).getCName(),
-                            compoundGCInformationTxts.get(i).getCasId(),
-                            compoundInfo.getFormula(),
-                            compoundInfo.getMonoisotopicMass(),
-                            compoundInfo.getCompound_status(),
-                            compoundInfo.getCompound_type(), compoundInfo.getLogP(),
-                            compoundInfo.getIdentifiersOwn(),
-                            compoundInfo.getIdentifiersParent(),
-                            compoundGCInformationTxts.get(i).getRI(),
-                            compoundGCInformationTxts.get(i).getGcmsSpectrum());
-                } else {
-                    //IS i+1 SINCE MY ORIGINAL TXT LIST START AT 1
-                    //compoundGCAndPossibleErrors.casIdNotFound.put(i+1, compoundGCInformationTxts.get(i));
-                    compoundGCAndPossibleErrors.casIdNotFound.put(compoundGCInformationTxts.get(i).getNumberOriginalListTxt(),
-                            compoundGCInformationTxts.get(i));
-                    compoundInfo = PubchemRest.getCompoundFromName(compoundGCInformationTxts.get(i).getCName());
-                    formula = compoundInfo.getFormula();
-                    compoundGC = new CompoundGC(compoundInfo.getCompound_id(),
-                            compoundGCInformationTxts.get(i).getCName(),
-                            //compoundGCInformationTxts.get(i).getCasId(), //NotFound
-                            compoundInfo.getCasId(), //null
-                            compoundInfo.getFormula(),
-                            compoundInfo.getMonoisotopicMass(),
-                            compoundInfo.getCompound_status(),
-                            compoundInfo.getCompound_type(), compoundInfo.getLogP(),
-                            compoundInfo.getIdentifiersOwn(),
-                            compoundInfo.getIdentifiersParent(),
-                            compoundGCInformationTxts.get(i).getRI(),
-                            compoundGCInformationTxts.get(i).getGcmsSpectrum());
-                }
-
-                if (!formula.equals("")) {
-                    //compoundGCAndPossibleErrors.compoundGC.add(compoundGC);
-                    compoundGCAndPossibleErrors.compoundGC.put(compoundGCInformationTxts.get(i).getNumberOriginalListTxt(),
-                            compoundGC);
-                } else { //IT ONLY ENTER IF THERE ARE NO EXCEPTION AND THE FORMULA IS EMPTY -> RARE
-                    //compoundGCAndPossibleErrors.nameNotFound.put(i+1, compoundGCInformationTxts.get(i));
-                    compoundGCAndPossibleErrors.nameNotFound.put(compoundGCInformationTxts.get(i).getNumberOriginalListTxt(),
-                            compoundGCInformationTxts.get(i));
-                    System.out.println("En bucle");
-                }
-            }catch (Exception e) {
-                //Error logging for debbuging but not stops the program
-                /*if((compoundGCInformationTxts.get(i).getCasId()!=null)
-                        && !compoundGCInformationTxts.get(i).getCasId().equalsIgnoreCase("NotFound")){
-                    LOGGER.warning("The casId do not exist on the PubChem website:"
-                            + " NumListTxt: "+ compoundGCInformationTxts.get(i).getNumberOriginalListTxt()
-                            + " Name: " + compoundGCInformationTxts.get(i).getCName() + ": " + e.getMessage());
-                    compoundGCAndPossibleErrors.casIdNotFound.put(compoundGCInformationTxts.get(i).getNumberOriginalListTxt(),
-                            compoundGCInformationTxts.get(i));
-                } else{
-                    LOGGER.warning("The name do not exist on the PubChem website:"
-                        + " NumListTxt: "+ compoundGCInformationTxts.get(i).getNumberOriginalListTxt()
-                        + " Name: " + compoundGCInformationTxts.get(i).getCName() + ": " + e.getMessage());
-                    compoundGCAndPossibleErrors.nameNotFound.put(compoundGCInformationTxts.get(i).getNumberOriginalListTxt(),
-                            compoundGCInformationTxts.get(i));
-                }*/
-                //compoundGCAndPossibleErrors.nameNotFound.put(i+1, compoundGCInformationTxts.get(i));
-               /* compoundGCAndPossibleErrors.nameNotFound.put(compoundGCInformationTxts.get(i).getNumberOriginalListTxt(),
-                        compoundGCInformationTxts.get(i));*/
-                LOGGER.warning("The name or casId do not exist on the PubChem website:"
-                        + " NumListTxt: "+ compoundGCInformationTxts.get(i).getNumberOriginalListTxt()
-                        + " Name: " + compoundGCInformationTxts.get(i).getCName() + ": " + e.getMessage());
-                compoundGCAndPossibleErrors.nameNotFound.put(compoundGCInformationTxts.get(i).getNumberOriginalListTxt(),
-                        compoundGCInformationTxts.get(i));
-            }
-        }
-        return compoundGCAndPossibleErrors;
-    }
-
-    /**
-     * MAL -> use getGCMSCloroformiatesFromTxt
-     * From the list of CompoundGCInformationTxt will get all their relevant information from PubChem website
-     * @param compoundGCInformationTxts List with the information of the txt file
-     * @return CompoundGCAndPossibleErrors Is a class that has a list of compoundsGC, a map with the
-     * 'original index compound' (the one from the txt file) and CompoundGCInformationTxt
-     */
-    public static CompoundGCAndPossibleErrors getGCMSCloroformiatesLibraryFromTxt
-            (List<CompoundGCInformationTxt> compoundGCInformationTxts){
-
-        CompoundGCAndPossibleErrors compoundGCAndPossibleErrors = new CompoundGCAndPossibleErrors();
-
-        int i;
-        for(i=0; i<compoundGCInformationTxts.size(); i++){
-            String formula = "";
-            try{
-                CompoundGC compoundGC;
-                Compound compoundInfo;
-                if (!compoundGCInformationTxts.get(i).getCasId().equalsIgnoreCase("NotFound")) {
-                    int cid = PubchemRest.getPCIDFromCasId(compoundGCInformationTxts.get(i).getCasId());
-                    compoundInfo = PubchemRest.getCompoundFromPCID(cid);
-                    formula = compoundInfo.getFormula();
-                    compoundGC = new CompoundGC(compoundInfo.getCompound_id(),
-                            compoundGCInformationTxts.get(i).getCName(),
-                            compoundGCInformationTxts.get(i).getCasId(),
-                            compoundInfo.getFormula(),
-                            compoundInfo.getMonoisotopicMass(),
-                            compoundInfo.getCompound_status(),
-                            compoundInfo.getCompound_type(), compoundInfo.getLogP(),
-                            compoundInfo.getIdentifiersOwn(),
-                            compoundInfo.getIdentifiersParent(),
-                            compoundGCInformationTxts.get(i).getRI(),
-                            compoundGCInformationTxts.get(i).getGcmsSpectrum());
-                }else {
-                    //TODO BUSCAR EL CASID -> usando el pcid mejor que el nombre
-                    //IS i+1 SINCE MY ORIGINAL TXT LIST START AT 1
-                    //compoundGCAndPossibleErrors.casIdNotFound.put(i+1, compoundGCInformationTxts.get(i));
-                    compoundGCAndPossibleErrors.casIdNotFound.put(compoundGCInformationTxts.get(i).getNumberOriginalListTxt(),
-                            compoundGCInformationTxts.get(i));
-                    compoundInfo = PubchemRest.getCompoundFromName(compoundGCInformationTxts.get(i).getCName());
-                    formula = compoundInfo.getFormula();
-                    compoundGC = new CompoundGC(compoundInfo.getCompound_id(),
-                            compoundGCInformationTxts.get(i).getCName(),
-                            //compoundGCInformationTxts.get(i).getCasId(), //NotFound
-                            compoundInfo.getCasId(), //null
-                            compoundInfo.getFormula(),
-                            compoundInfo.getMonoisotopicMass(),
-                            compoundInfo.getCompound_status(),
-                            compoundInfo.getCompound_type(), compoundInfo.getLogP(),
-                            compoundInfo.getIdentifiersOwn(),
-                            compoundInfo.getIdentifiersParent(),
-                            compoundGCInformationTxts.get(i).getRI(),
-                            compoundGCInformationTxts.get(i).getGcmsSpectrum());
-                }
-                if (!formula.equals("")) {
-                    //compoundGCAndPossibleErrors.compoundGC.add(compoundGC);
-                    compoundGCAndPossibleErrors.compoundGC.put(compoundGCInformationTxts.get(i).getNumberOriginalListTxt(),
-                            compoundGC);
-                } else { //IT ONLY ENTER IF THERE ARE NO EXCEPTION AND THE FORMULA IS EMPTY -> RARE
-                    //compoundGCAndPossibleErrors.nameNotFound.put(i+1, compoundGCInformationTxts.get(i));
-                    compoundGCAndPossibleErrors.nameNotFound.put(compoundGCInformationTxts.get(i).getNumberOriginalListTxt(),
-                            compoundGCInformationTxts.get(i));
-                    System.out.println("En bucle");
-                }
-            }catch (Exception e) {
-                //Error logging for debbuging but not stops the program
-                /*LOGGER.warning("The name or casId do not exist on the PubChem website:"
-                        + " NumListTxt: "+ compoundGCInformationTxts.get(i).getNumberOriginalListTxt()
-                        + " Name: " + compoundGCInformationTxts.get(i).getCName() + ": " + e.getMessage());*/
-                String infoError = "The name or casId do not exist on the PubChem website:"
-                        + " NumListTxt: "+ compoundGCInformationTxts.get(i).getNumberOriginalListTxt()
-                        + " Name: " + compoundGCInformationTxts.get(i).getCName() + ": " + e.getMessage();
-                compoundGCAndPossibleErrors.error.add(infoError);
-                compoundGCAndPossibleErrors.nameNotFound.put(compoundGCInformationTxts.get(i).getNumberOriginalListTxt(),
-                        compoundGCInformationTxts.get(i));
-            }
-        }
-        return compoundGCAndPossibleErrors;
     }
 
     /**
@@ -354,8 +227,14 @@ public class ReadTxt {
         CompoundGC compoundGC;
         int cid = PubchemRest.getPCIDFromCasId(compoundGCInformationTxts.getCasId());
         compoundInfo = PubchemRest.getCompoundFromPCID(cid);
+        String nameIupac = compoundInfo.getCompoundName();
+        String givenName = compoundGCInformationTxts.getCName();
+        //String name = (!nameIupac.isEmpty()) ? nameIupac : givenName;
+        String name = (nameIupac!=null) ? nameIupac : givenName;
         compoundGC = new CompoundGC(compoundInfo.getCompound_id(),
-                compoundGCInformationTxts.getCName(), //TODO usar nombre que me de o el que me dan en la funcion?
+                //compoundGCInformationTxts.getCName(), //Better use the IUPAC name
+                //compoundInfo.getCompoundName(),
+                name,
                 compoundGCInformationTxts.getCasId(),
                 compoundInfo.getFormula(),
                 compoundInfo.getMonoisotopicMass(),
@@ -364,7 +243,12 @@ public class ReadTxt {
                 compoundInfo.getIdentifiersOwn(),
                 compoundInfo.getIdentifiersParent(),
                 compoundGCInformationTxts.getRI(),
-                compoundGCInformationTxts.getGcmsSpectrum());
+                compoundGCInformationTxts.getGcmsSpectra());
+
+        System.out.println("Nombre tengo from CasId: "+compoundGCInformationTxts.getCName() +
+                "\nNombre que recibo IUPAC: " + compoundInfo.getCompoundName() +
+                "\nName:                  : " + name);
+
         return compoundGC;
     }
 
@@ -377,9 +261,16 @@ public class ReadTxt {
     private static CompoundGC getCompoundGCIfName (CompoundGCInformationTxt compoundGCInformationTxts) throws IOException{
         Compound compoundInfo;
         CompoundGC compoundGC;
-        compoundInfo = PubchemRest.getCompoundFromName(compoundGCInformationTxts.getCName());
+        //compoundInfo = PubchemRest.getCompoundFromName(compoundGCInformationTxts.getCName());
+        compoundInfo = PubchemRest.getCompoundIUPACNameFromName(compoundGCInformationTxts.getCName());
+        String nameIupac = compoundInfo.getCompoundName();
+        String givenName = compoundGCInformationTxts.getCName();
+        //String name = (!nameIupac.isEmpty()) ? nameIupac : givenName;
+        String name = (nameIupac!=null) ? nameIupac : givenName;
         compoundGC = new CompoundGC(compoundInfo.getCompound_id(),
-                compoundGCInformationTxts.getCName(), //TODO usar nombre que me de o el que me dan en la funcion?
+                //compoundGCInformationTxts.getCName(), //Better use the IUPAC name
+                //compoundInfo.getCompoundName(),
+                name,
                 //compoundGCInformationTxts.get(i).getCasId(), //NotFound
                 compoundInfo.getCasId(), //null
                 compoundInfo.getFormula(),
@@ -389,7 +280,12 @@ public class ReadTxt {
                 compoundInfo.getIdentifiersOwn(),
                 compoundInfo.getIdentifiersParent(),
                 compoundGCInformationTxts.getRI(),
-                compoundGCInformationTxts.getGcmsSpectrum());
+                compoundGCInformationTxts.getGcmsSpectra());
+
+        System.out.println("Nombre tengo from  Name: "+compoundGCInformationTxts.getCName() +
+                "\nNombre que recibo IUPAC: " + compoundInfo.getCompoundName() +
+                "\nName:                  : " + name);
+
         return compoundGC;
     }
 
@@ -405,10 +301,16 @@ public class ReadTxt {
         CompoundGC compoundGC;
         int cid = PubchemRest.getPCIDFromInchi(compoundGCInformationTxts.getInchi());
         compoundInfo = PubchemRest.getCompoundFromPCID(cid);
-        compoundGC = new CompoundGC(compoundInfo.getCompound_id(),
-                compoundGCInformationTxts.getCName(), //TODO usar nombre que me de o el que me dan en la funcion?
+        String nameIupac = compoundInfo.getCompoundName();
+        String givenName = compoundGCInformationTxts.getCName();
+        //String name = (!nameIupac.isEmpty()) ? nameIupac : givenName;
+        String name = (nameIupac!=null) ? nameIupac : givenName;
 
-                compoundInfo.getCasId(),
+        compoundGC = new CompoundGC(compoundInfo.getCompound_id(),
+                //compoundGCInformationTxts.getCName(), //Better use the IUPAC name
+                //compoundInfo.getCompoundName(),
+                name,
+                compoundInfo.getCasId(), //null
                 compoundInfo.getFormula(),
                 compoundInfo.getMonoisotopicMass(),
                 compoundInfo.getCompound_status(),
@@ -416,15 +318,15 @@ public class ReadTxt {
                 compoundInfo.getIdentifiersOwn(),
                 compoundInfo.getIdentifiersParent(),
                 compoundGCInformationTxts.getRI(),
-                compoundGCInformationTxts.getGcmsSpectrum());
+                compoundGCInformationTxts.getGcmsSpectra());
         //para comprobacion
-        System.out.println("\nNombre que tengo: "+compoundGCInformationTxts.getCName() +
-                "\nNomb. que recibo: " + compoundInfo.getCompoundName());
+        System.out.println("Nombre tengo from Inchi: "+compoundGCInformationTxts.getCName() +
+                "\nNombre que recibo IUPAC: " + compoundInfo.getCompoundName() +
+                "\nName:                  : " + name);
         return compoundGC;
     }
 
     /**
-     * TODO
      * From the Inchi it gets the compoundGC
      * @param compoundGCInformationTxts List with the information of the txt file
      * @return CompoundGC with the relevant information of PubChem website
@@ -436,9 +338,15 @@ public class ReadTxt {
         CompoundGC compoundGC;
         int cid = PubchemRest.getPCIDFromSmiles(compoundGCInformationTxts.getSmiles());
         compoundInfo = PubchemRest.getCompoundFromPCID(cid);
-        compoundGC = new CompoundGC(compoundInfo.getCompound_id(),
-                compoundGCInformationTxts.getCName(), //TODO usar nombre que me de o el que me dan en la funcion?
+        String nameIupac = compoundInfo.getCompoundName();
+        String givenName = compoundGCInformationTxts.getCName();
+        //String name = (!nameIupac.isEmpty()) ? nameIupac : givenName;
+        String name = (nameIupac!=null) ? nameIupac : givenName;
 
+        compoundGC = new CompoundGC(compoundInfo.getCompound_id(),
+                //compoundGCInformationTxts.getCName(), //Better use the IUPAC name
+                //compoundInfo.getCompoundName(),
+                name,
                 compoundInfo.getCasId(),
                 compoundInfo.getFormula(),
                 compoundInfo.getMonoisotopicMass(),
@@ -447,10 +355,11 @@ public class ReadTxt {
                 compoundInfo.getIdentifiersOwn(),
                 compoundInfo.getIdentifiersParent(),
                 compoundGCInformationTxts.getRI(),
-                compoundGCInformationTxts.getGcmsSpectrum());
+                compoundGCInformationTxts.getGcmsSpectra());
         //para comprobacion
-        System.out.println("\nNombre que tengo: "+compoundGCInformationTxts.getCName() +
-                "\nNomb. que recibo: " + compoundInfo.getCompoundName());
+        System.out.println("Nombre teng from smiles: "+compoundGCInformationTxts.getCName() +
+                "\nNombre que recibo IUPAC: " + compoundInfo.getCompoundName() +
+                "\nName:                  : " + name);
         return compoundGC;
     }
 
@@ -469,6 +378,9 @@ public class ReadTxt {
         for(i=0; i<compoundGCInformationTxts.size(); i++){
             String formula = "";
             CompoundGC compoundGC = null;
+
+            System.out.println("\nCompouesto busqueda info pubchem: "+(i+1));
+
             if (!compoundGCInformationTxts.get(i).getCasId().equalsIgnoreCase("NotFound")) {
                 //IF IT HAS CASID
                 try {
@@ -497,8 +409,9 @@ public class ReadTxt {
                                 formula = compoundGC.getFormula();
 
                             } catch (IOException ioe) { //IF SMILES IS NOT FOUND
-                                String infoError = "\nThe casId, the name, the inchi, and smiles are not found on PubChem website:"
-                                        + " NumListTxt: "+ compoundGCInformationTxts.get(i).getNumberOriginalListTxt()
+                                String infoError = "\nThe given casId, the name, the inchi, and smiles are not found on PubChem website:"
+                                        + "\nThe data will be manually created from:"
+                                        + "\nNumListTxt: "+ compoundGCInformationTxts.get(i).getNumberOriginalListTxt()
                                         + "; Name: " + compoundGCInformationTxts.get(i).getCName()
                                         + "; \n\tInchi: " + compoundGCInformationTxts.get(i).getInchi()
                                         + "; \n\tSmiles: " + compoundGCInformationTxts.get(i).getSmiles()
@@ -542,8 +455,9 @@ public class ReadTxt {
                             formula = compoundGC.getFormula();
 
                         } catch (IOException ioe) { //IF SMILES IS NOT FOUND
-                            String infoError = "\nThe casId, the name, the inchi and smiles are not found on PubChem website:"
-                                    + " NumListTxt: "+ compoundGCInformationTxts.get(i).getNumberOriginalListTxt()
+                            String infoError = "\nThe given casId, the name, the inchi and smiles are not found on PubChem website."
+                                    + "\nThe data will be manually created from:"
+                                    + "\nNumListTxt: "+ compoundGCInformationTxts.get(i).getNumberOriginalListTxt()
                                     + "; Name: " + compoundGCInformationTxts.get(i).getCName()
                                     + "; \n\tInchi: " + compoundGCInformationTxts.get(i).getInchi()
                                     + "; \n\tSmiles: " + compoundGCInformationTxts.get(i).getSmiles()
@@ -566,6 +480,13 @@ public class ReadTxt {
                 compoundGCAndPossibleErrors.compoundGC.put(compoundGCInformationTxts.get(i).getNumberOriginalListTxt(),
                         compoundGC);
             }
+
+            try {
+                Thread.sleep(850);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+
         }
         return compoundGCAndPossibleErrors;
     }

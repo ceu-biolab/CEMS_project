@@ -17,12 +17,9 @@ public class CompoundGC extends Compound {
 
     private GCColumn gcColumn;// = GCColumn.STANDARD_NON_POLAR; //default
 
-    //WORKING
-    private GCMS_Spectrum gcmsSpectrum;
-
-    public CompoundGC(){
-        super("AAAAA");
-    }
+    //WORKING ->
+    //private GCMS_Spectrum gcmsSpectrum; //TODO -> pasar a lista
+    private List<GCMS_Spectrum> gcmsSpectra;
 
     //Some cases on excel that dont have the RT
     public CompoundGC(String name, double RI) {
@@ -39,10 +36,10 @@ public class CompoundGC extends Compound {
     }
 
     public CompoundGC(String name, String casId,
-                      Double RI, GCMS_Spectrum gcms_spectrum) {
+                      Double RI, List<GCMS_Spectrum> gcms_spectrum) {
         super(name, casId);
         this.RI = RI;
-        this.gcmsSpectrum = gcms_spectrum;
+        this.gcmsSpectra = gcms_spectrum;
 
         this.dertype = DerivatizationType.METHYL_CHLOROFORMATE;
         this.gcColumn = GCColumn.STANDARD_NON_POLAR; //default
@@ -65,10 +62,10 @@ public class CompoundGC extends Compound {
     //For the Spectrum
     public CompoundGC(Integer compound_id, String name, String casId, String formula, Double monoisotopicMass,
                       Integer compound_status, Integer compound_type, Double logP,
-                      Identifier identifiersOwn, Identifier identifiersParent, GCMS_Spectrum gcmsSpectrum) {
+                      Identifier identifiersOwn, Identifier identifiersParent, List<GCMS_Spectrum> gcmsSpectrum) {
         super(compound_id, name, casId, formula, monoisotopicMass,
                 compound_status, compound_type, logP, identifiersOwn, identifiersParent);
-        this.gcmsSpectrum = gcmsSpectrum;
+        this.gcmsSpectra = gcmsSpectrum;
 
         this.dertype = DerivatizationType.METHYL_CHLOROFORMATE;
         this.gcColumn = GCColumn.STANDARD_NON_POLAR; //default
@@ -78,11 +75,14 @@ public class CompoundGC extends Compound {
     public CompoundGC(Integer compound_id, String name, String casId, String formula, Double monoisotopicMass,
                       Integer compound_status, Integer compound_type, Double logP,
                       Identifier identifiersOwn, Identifier identifiersParent,
-                      Double RI, GCMS_Spectrum gcmsSpectrum) {
+                      Double RI, List<GCMS_Spectrum> gcmsSpectrum) {
         super(compound_id, name, casId, formula, monoisotopicMass,
                 compound_status, compound_type, logP, identifiersOwn, identifiersParent);
         this.RI = RI;
-        this.gcmsSpectrum = gcmsSpectrum;
+        //this.RT = -1.0;
+        this.RT = null;
+
+        this.gcmsSpectra = gcmsSpectrum;
 
         this.dertype = DerivatizationType.METHYL_CHLOROFORMATE;
         this.gcColumn = GCColumn.STANDARD_NON_POLAR; //default
@@ -130,28 +130,36 @@ public class CompoundGC extends Compound {
         }
     }
 
-    public GCMS_Spectrum getGcmsSpectrum() {
-        return gcmsSpectrum;
+    public List<GCMS_Spectrum> getGcmsSpectrum() {
+        return gcmsSpectra;
     }
 
-    public void setGcmsSpectrum(GCMS_Spectrum gcmsSpectrum) {
-        this.gcmsSpectrum = gcmsSpectrum;
+    public void setGcmsSpectrum(List<GCMS_Spectrum> gcmsSpectrum) {
+        this.gcmsSpectra = gcmsSpectrum;
     }
 
     @Override
     public String toString() {
         return "CompoundGC{" +
-                "Name=" + this.getCompoundName() +
+                "compound_id=" + this.getCompound_id() +
+                ", Name=" + this.getCompoundName() +
                 ", CasId=" + this.getCasId() +
-                ", Formula=" + this.getFormula() +
-                ", Mass=" + this.getMonoisotopicMass() + ",\n   " +
-                "Identifiers=" + this.getIdentifiersOwn() + ",\n   " +
+                ", Formula=" + this.getFormula() + "\n" +
+                ", Charge_type="+ this.getCharge_type() +
+                ", Charge_number="+ this.getCharge_number() +
+                ", formula_type="+ this.getFormula_type() +
+                ", formula_type_int=" + this.getFormula_type_int() +
+                ", compound_type=" + this.getCompound_type() +
+                ", compound_status=" + this.getCompound_status() +
+                ", logP=" + this.getLogP() +
+                ", Mass=" + this.getMonoisotopicMass() + ", \n   " +
+                "Identifiers=" + this.getIdentifiersOwn() + ", \n   " +
                 //"Name=" + this.getRefPubChem() +
                 "RI=" + RI +
                 ", RT=" + RT +
                 ", dertype=" + dertype +
-                ", gcColumn='" + gcColumn + ",\n   " +
-                "gcmsSpectrum=" + gcmsSpectrum +
+                ", gcColumn='" + gcColumn + ", \n   " +
+                "gcmsSpectra=" + gcmsSpectra +
                 '}';
     }
 
