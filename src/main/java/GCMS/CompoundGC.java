@@ -159,7 +159,7 @@ public class CompoundGC extends Compound {
                 ", RT=" + RT +
                 ", dertype=" + dertype +
                 ", gcColumn='" + gcColumn + ", \n   " +
-                "gcmsSpectra=" + gcmsSpectra +
+                //"gcmsSpectra=" + gcmsSpectra +
                 '}';
     }
 
