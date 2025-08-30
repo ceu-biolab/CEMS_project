@@ -396,7 +396,7 @@ public class GCMS_insert {
 
         //String dbName = "jdbc:mysql://localhost/gcms_v5?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true";
         String dbUser = "root";
-        String dbPassword = "LaRambla_SQL";
+        String dbPassword = "";
         DBManager db = new DBManager();
 
         try {
@@ -600,7 +600,7 @@ public class GCMS_insert {
 
         //String dbName = "jdbc:mysql://localhost/gcms_v5?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true";
         //String dbUser = "root";
-        //String dbPassword = "LaRambla_SQL";
+        //String dbPassword = "";
 
         try{
             int i;
