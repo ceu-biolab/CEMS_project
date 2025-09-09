@@ -101,7 +101,7 @@ public class DBManager {
      * Return the compound id from the inchi of a compound
      *
      * @param inchi
-     * @return compound_id
+     * @return the compound id. It returns 0 if it is not found
      */
     public int getCompoundIdFromInchi(String inchi) {
         String sql = "SELECT compound_id FROM compound_identifiers WHERE inchi LIKE ?";
@@ -120,7 +120,7 @@ public class DBManager {
      * Return the compound id from the inchiKey of a compound
      *
      * @param inchiKey
-     * @return compound_id
+     * @return the compound id. It returns 0 if it is not found
      */
     public int getCompoundIdFromInchiKey(String inchiKey) {
         String sql = "SELECT compound_id FROM compound_identifiers WHERE inchi_key LIKE ?";
@@ -186,7 +186,7 @@ public class DBManager {
             ps.setString(1, m.getCompoundName());
             ps.setString(2, m.getFormula());
             ps.setDouble(3, m.getMonoisotopicMass());
-            ps.executeUpdate();                 //insertamos la info
+            ps.executeUpdate();
 
             try (ResultSet rs = ps.getGeneratedKeys()) {
                 if (rs.next()) {
@@ -238,7 +238,6 @@ public class DBManager {
      */
     public void insertHMDB(int compound_id, String HMDB) {
         String sql = ConstantQueries.INSERT_COMP_HMDB;
-        //"INSERT INTO compounds_hmdb (hmdb_id, compound_id) VALUES (?, ?)"
         try {
             if (HMDB != null) {
                 //we just have to add the reference when it exists
@@ -249,7 +248,7 @@ public class DBManager {
             }
         } catch (SQLException ex) {
             //Logger.getLogger(DBManager.class.getName()).log(Level.SEVERE, null, ex);
-            if (ex.getErrorCode() == 1062) { //code de Duplicate Entry
+            if (ex.getErrorCode() == 1062) { //code Duplicate Entry
                 System.out.println("No se inserta la referencia HMDB porque ya estaba metida.");
             }
         }
@@ -263,7 +262,6 @@ public class DBManager {
      */
     public void insertPC(int compound_id, Integer pc) {
         String sql = ConstantQueries.INSERT_COMP_PC;
-        //"INSERT INTO compounds_pc (pc_id, compound_id) VALUES (?, ?)"
 
         try {
 
@@ -276,7 +274,7 @@ public class DBManager {
             }
         } catch (SQLException ex) {
             //Logger.getLogger(DBManager.class.getName()).log(Level.SEVERE, null, ex);
-            if (ex.getErrorCode() == 1062) { //code de Duplicate Entry
+            if (ex.getErrorCode() == 1062) { //code  Duplicate Entry
                 System.out.println("No se inserta la referencia PubChem porque ya estaba metida.");
             }
         }
@@ -417,7 +415,6 @@ public class DBManager {
     public int insertEffMob(CEMSCompound m, CEMSExperimentalConditions c) {
         //returns el id que se acaba de insertar (ce_eff_mob_id)
         String sql = ConstantQueries.INSERT_EFF_MOB;
-        //INSERT INTO ce_eff_mob(ce_compound_id, eff_mob_exp_prop_id, cembio_id, eff_mobility) VALUES(?, ?, ?, ?)"
         int eff_mob_id = 0;
         try {
             PreparedStatement ps = this.connection.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS);
@@ -431,7 +428,6 @@ public class DBManager {
             ResultSet rset = statement.executeQuery(query);
             if (rset.next()) {
                 cembio_id = rset.getInt(1);
-                //System.out.println(cembio_id);
             }
             rset.close();
             cembio_id++;    //el id insertado es el siguiente al ultimo que se ha leído
@@ -835,8 +831,9 @@ public class DBManager {
     }
 
     /**
-     * Inserts a compound TODO
-     * @param compound
+     * Inserts a compound into the database
+     * @param compound the GCCompound
+     * @return the compound id
      */
     public int insertIntoCompounds(CompoundGC compound) {
         PreparedStatement prep=null;
@@ -850,7 +847,6 @@ public class DBManager {
             prep.setString(1, compound.getCasId()); //could be null
             prep.setString(2, compound.getCompoundName());
             prep.setString(3, compound.getFormula());
-            //prep.setDouble(4, compound.getMonoisotopicMass());
             prep.setObject(4, compound.getMonoisotopicMass(), java.sql.Types.DOUBLE);
             prep.setInt(5, compound.getCharge_type());
             prep.setInt(6, compound.getCharge_number());
@@ -859,12 +855,6 @@ public class DBManager {
             prep.setInt(9, compound.getCompound_status());
             prep.setInt(10, compound.getFormula_type_int());
             prep.setObject(11, compound.getLogP(), java.sql.Types.DOUBLE);
-            /*Double logP = compound.getLogP();
-            if(logP!=null) {
-                prep.setDouble(11, compound.getLogP()); //could be null
-            } else{
-                prep.setNull(11, 2);
-            }*/
             prep.executeUpdate();
 
             try (ResultSet rs = prep.getGeneratedKeys()) {
@@ -876,24 +866,20 @@ public class DBManager {
             }
         } catch (SQLException ex) {
             Logger.getLogger(DBManager.class.getName()).log(Level.SEVERE, null, ex);
-        } finally { //ITS IMPORTANT TO CLOSE PREPARESTATEMENT
+        } finally { //IT IS IMPORTANT TO CLOSE PREPARESTATEMENT
             closePrepareStatementResource(prep);
         }
         return compound_id;
     }
 
     /**
-     * Insert identifiers
-     * @param c
+     * Insert identifiers (inchi, inchikey and smiles) into the database
+     * @param c the compoundGC
      */
     public void insertIntoCompoundIdentifiers(CompoundGC c) {
-        //Connection connection = null;
-        //Statement statement = null;
         PreparedStatement prep=null;
         String sql = "INSERT INTO compound_identifiers (compound_id, inchi, inchi_key, smiles) VALUES (?, ?, ?, ?)";;
         try {
-            //connection = DriverManager.getConnection(dbname, dbuser, dbpassword);
-            //statement = connection.createStatement();
 
             prep = this.connection.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS);
             prep.setInt(1, c.getCompound_id());
@@ -901,8 +887,7 @@ public class DBManager {
             prep.setString(3, c.getINCHIKey());
             prep.setString(4, c.getIdentifiersOwn().getSmiles());
 
-            prep.executeUpdate(); //the information is inserted
-            //prep.close();
+            prep.executeUpdate();
 
         } catch (SQLException ex) {
             Logger.getLogger(DBManager.class.getName()).log(Level.SEVERE, null, ex);
@@ -913,13 +898,11 @@ public class DBManager {
     }
 
     /**
-     * Inserts into derivatization methods table the derivatization type of the compound
+     * Inserts into derivatization methods table the derivatization type of the compound.
      * Only if it does not exist
-     * @param compoundgc
+     * @param compoundgc the compoundGC
      */
     public void insertDerivatizationMethod(CompoundGC compoundgc){
-        //Connection connection = null;
-        //Statement statement = null;
         PreparedStatement prep=null;
 
         try {
@@ -940,7 +923,7 @@ public class DBManager {
 
     /**
      * Gets the id of derivatization method from its name
-     * @param name
+     * @param name the derivatization method name
      * @return derivatization method id
      */
     public int getDerivatizationMethodIdfromDerType(String name) {
@@ -972,7 +955,6 @@ public class DBManager {
         try {
             ResultSet rs = ps.executeQuery();
             if (rs.next()) {
-                //idDer = rs.getInt("derivatization_id");
                 idDer = rs.getInt("derivatization_method_id");
             }
             rs.close();
@@ -983,17 +965,15 @@ public class DBManager {
     }
 
     /**
-     * inserts gccolumn into gc_column table
-     * @param compoundgc
+     * inserts gccolumn into gc_column table if the gccolumn does not already exist
+     * @param compoundgc the compoundGC
      */
     public void insertGCColumn(CompoundGC compoundgc){
         PreparedStatement prep=null;
 
         try {
             String gcCol = compoundgc.getGcColumn().toString();
-            //String sql = "INSERT INTO gc_column (gc_ri_rt_id, gc_column_name) VALUES (?, ?)";
-            //if(getDerivatizationMethodIdfromDerType(gcCol)==0){
-            if(getGCColumnIdfromGCColumnType(gcCol)==0){//GcColumn is not in the tables --> insert
+            if(getGCColumnIdfromGCColumnType(gcCol)==0){
                 String sql = "INSERT INTO gc_column (gc_column_name) VALUES (?)";
                 prep = this.connection.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS);
 
@@ -1011,7 +991,7 @@ public class DBManager {
 
     /**
      * Gets the id of gccolumn type from its name
-     * @param name
+     * @param name GCColumn name
      * @return gccolumn id
      */
     public int getGCColumnIdfromGCColumnType(String name) {
@@ -1035,7 +1015,7 @@ public class DBManager {
 
     /**
      * From a PreparedStatement obtains an int (gc_column_id)
-     * @param ps
+     * @param ps PreparedStatement
      * @return gc_column_id
      */
     private int getIntColIdfromPrepStatementGcColumnName(PreparedStatement ps) {
@@ -1054,20 +1034,14 @@ public class DBManager {
     }
 
     /**
-     * Inserts into gc-ri-rt the information (RI, compound id, derivatization id, gc_column_id) of a compound
-     * @param compoundgc
+     * Inserts into gc-ri-rt the information (RI, compound id, derivatization id, gc_column_id)
+     * of a compound
+     * @param compoundgc the compoundGC
      */
     public void insertRIRT(CompoundGC compoundgc){
-        //Connection connection = null;
-        //Statement statement = null;
         PreparedStatement prep=null;
 
         try {
-            //connection = DriverManager.getConnection(dbname, dbuser, dbpassword);
-            //statement = connection.createStatement();
-
-            //String sql = "INSERT INTO gc_ri_rt (ri, rt, compound_id, derivatization_method_id) VALUES (?, ?, ?, ?)";
-            //String sql = "INSERT INTO gc_ri_rt (compound_id, derivatization_method_id, gc_column_id, ri, rt) VALUES (?, ?, ?, ?, ?)";
             String sql = "INSERT INTO gc_ri_rt (compound_id, derivatization_method_id, gc_column_id, ri) VALUES (?, ?, ?, ?)";
             prep = this.connection.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS);
 
@@ -1082,12 +1056,8 @@ public class DBManager {
             prep.setDouble(3, gc_column_id);
 
             prep.setDouble(4, compoundgc.getRI());
-            //prep.setDouble(5, compoundgc.getRT()); //default null
-            //prep.setObject(11, compound.getLogP(), java.sql.Types.DOUBLE);
-
 
             prep.executeUpdate();
-            //prep.close();
 
         } catch (SQLException ex) {
             Logger.getLogger(DBManager.class.getName()).log(Level.SEVERE, null, ex);
@@ -1102,17 +1072,12 @@ public class DBManager {
      * @return gc_ri_rt id
      */
     public int getgcrirtIdfromCompoundId(int cid) {
-        //Connection connection = null;
-        //Statement statement = null;
         PreparedStatement ps = null;
 
         int gcrirt_id = 0;
 
         String sql = "SELECT gc_ri_rt_id FROM gc_ri_rt WHERE compound_id LIKE ?";
         try {
-            //connection = DriverManager.getConnection(dbname, dbuser, dbpassword);
-            //statement = connection.createStatement();
-
             ps = this.connection.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS);
             ps.setInt(1, cid);
             gcrirt_id = getIntGCColumnIdfromPrepStatementgccolumn(ps);
@@ -1155,25 +1120,21 @@ public class DBManager {
         int spectrum_id =0;
 
         try {
-            //int size_GCMS_Spectra = compoundgc.getGcmsSpectrum().size();
-            //for (int i = 0; i < size_GCMS_Spectra; i++) {
-                String sql = "INSERT INTO gcms_spectrum (compound_id, derivatization_method_id) VALUES (?, ?)";
-                prep = this.connection.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS);
+            String sql = "INSERT INTO gcms_spectrum (compound_id, derivatization_method_id) VALUES (?, ?)";
+            prep = this.connection.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS);
 
-                prep.setDouble(1, compoundgc.getCompound_id());
-                String dertype = compoundgc.getDertype().toString();
-                prep.setDouble(2, getDerivatizationMethodIdfromDerType(dertype));
+            prep.setDouble(1, compoundgc.getCompound_id());
+            String dertype = compoundgc.getDertype().toString();
+            prep.setDouble(2, getDerivatizationMethodIdfromDerType(dertype));
 
-                prep.executeUpdate();
+            prep.executeUpdate();
 
-                spectrum_id = getIntfromPrepStatementSpectrum(prep);
-                //return spectrum_id;todo cambiado pero no comprobado!!!
-            //}
+            spectrum_id = getIntfromPrepStatementSpectrum(prep);
+
         }  catch (SQLException ex) {
             Logger.getLogger(DBManager.class.getName()).log(Level.SEVERE, null, ex);
         } finally {
             closePrepareStatementResource(prep);
-            //return spectrum_id;
         }
         return spectrum_id;
     }
@@ -1185,12 +1146,9 @@ public class DBManager {
      */
     private static int getIntfromPrepStatementSpectrum(PreparedStatement ps) {
         int id = 0;
-        // Be aware that the connection should be initialized (calling the method connectToDB)
         try {
-            //ResultSet rs = ps.executeQuery();
             ResultSet rs = ps.getGeneratedKeys();
             if (rs.next()) {
-                //id = rs.getInt("gcms_spectrum_id");
                 id = rs.getInt(1);
             }
             rs.close();
@@ -1202,28 +1160,21 @@ public class DBManager {
     }
 
     /**
-     * Inserts peaks into gcms_peaks table
+     * Inserts peaks into gcms_peaks table from the database
      * @param spectrum_id
      * @param gcms_peaks
      */
     public void insertGCMSPeaks(int spectrum_id, GCMS_Peaks gcms_peaks){
-        //Connection connection = null;
-        //Statement statement = null;
         PreparedStatement prep=null;
 
         try {
-            //connection = DriverManager.getConnection(dbname, dbuser, dbpassword);
-            //statement = connection.createStatement();
-
-            String sql = "INSERT INTO gcms_peaks (gcms_spectrum_id, mz, intensity) VALUES (?, ?, ?)";
+             String sql = "INSERT INTO gcms_peaks (gcms_spectrum_id, mz, intensity) VALUES (?, ?, ?)";
             prep = this.connection.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS);
 
-            //prep.setDouble(1, getgcmsSpectrumIdfromCompoundId(compoundgc.getCompound_id()));
             prep.setDouble(1, spectrum_id);
             prep.setDouble(2, gcms_peaks.getMz());
             prep.setDouble(3, gcms_peaks.getIntensity());
             prep.executeUpdate();
-            //prep.close();
 
         }  catch (SQLException ex) {
             Logger.getLogger(DBManager.class.getName()).log(Level.SEVERE, null, ex);

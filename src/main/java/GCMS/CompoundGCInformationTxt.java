@@ -2,13 +2,11 @@ package GCMS;
 
 import java.util.List;
 
-//CLASS WITH THE COMPOUND INFORMATION OF THE TXT
 public class CompoundGCInformationTxt {
     private Integer numberOriginalListTxt;
     private String CName;
     private Double RI;
     private String casId;
-    //private GCMS_Spectrum gcmsSpectrum; //NORMALIZED SPECTRUM
     private List<GCMS_Spectrum> gcmsSpectra; //NORMALIZED SPECTRUM
     private String inchi;
     private String inchiKey;

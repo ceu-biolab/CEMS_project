@@ -2,26 +2,19 @@ package GCMS;
 
 import cems_project.Compound;
 import cems_project.Identifier;
-import dbmanager.PubchemRest;
 
-import java.io.IOException;
 import java.util.List;
 
 public class CompoundGC extends Compound {
     private Double RI;
     private Double RT;
 
-    //lista de las derivatizaciones de un compuesto
-    //private List<DerivatizationType> derivatizationTypeList = null;
-    private DerivatizationType dertype;// = DerivatizationType.METHYL_CHLOROFORMATE;
+    private DerivatizationType dertype;
 
-    private GCColumn gcColumn;// = GCColumn.STANDARD_NON_POLAR; //default
+    private GCColumn gcColumn;
 
-    //WORKING ->
-    //private GCMS_Spectrum gcmsSpectrum; //TODO -> pasar a lista
     private List<GCMS_Spectrum> gcmsSpectra;
 
-    //Some cases on excel that dont have the RT
     public CompoundGC(String name, double RI) {
         super(name);
         this.RI = RI;
@@ -42,7 +35,7 @@ public class CompoundGC extends Compound {
         this.gcmsSpectra = gcms_spectrum;
 
         this.dertype = DerivatizationType.METHYL_CHLOROFORMATE;
-        this.gcColumn = GCColumn.STANDARD_NON_POLAR; //default
+        this.gcColumn = GCColumn.STANDARD_NON_POLAR;
     }
 
     //For the RT and RI
@@ -56,7 +49,7 @@ public class CompoundGC extends Compound {
         this.RT = RT;
 
         this.dertype = DerivatizationType.METHYL_CHLOROFORMATE;
-        this.gcColumn = GCColumn.STANDARD_NON_POLAR; //default
+        this.gcColumn = GCColumn.STANDARD_NON_POLAR;
     }
 
     //For the Spectrum
@@ -68,7 +61,7 @@ public class CompoundGC extends Compound {
         this.gcmsSpectra = gcmsSpectrum;
 
         this.dertype = DerivatizationType.METHYL_CHLOROFORMATE;
-        this.gcColumn = GCColumn.STANDARD_NON_POLAR; //default
+        this.gcColumn = GCColumn.STANDARD_NON_POLAR;
     }
 
     //For the RI & spectrum
@@ -79,13 +72,12 @@ public class CompoundGC extends Compound {
         super(compound_id, name, casId, formula, monoisotopicMass,
                 compound_status, compound_type, logP, identifiersOwn, identifiersParent);
         this.RI = RI;
-        //this.RT = -1.0;
         this.RT = null;
 
         this.gcmsSpectra = gcmsSpectrum;
 
         this.dertype = DerivatizationType.METHYL_CHLOROFORMATE;
-        this.gcColumn = GCColumn.STANDARD_NON_POLAR; //default
+        this.gcColumn = GCColumn.STANDARD_NON_POLAR;
     }
 
     public double getRT() {
@@ -111,6 +103,10 @@ public class CompoundGC extends Compound {
     public void setDertype(String dertype) {
         if(dertype.equalsIgnoreCase("METHYL_CHLOROFORMATE")){
             this.dertype = DerivatizationType.METHYL_CHLOROFORMATE;
+        }if(dertype.equalsIgnoreCase("TMS")){
+            this.dertype = DerivatizationType.TMS;
+        }if(dertype.equalsIgnoreCase("TBDMS_DERIVATIZATION")){
+            this.dertype = DerivatizationType.TBDMS_DERIVATIZATION;
         }
     }
 
@@ -154,39 +150,11 @@ public class CompoundGC extends Compound {
                 ", logP=" + this.getLogP() +
                 ", Mass=" + this.getMonoisotopicMass() + ", \n   " +
                 "Identifiers=" + this.getIdentifiersOwn() + ", \n   " +
-                //"Name=" + this.getRefPubChem() +
                 "RI=" + RI +
                 ", RT=" + RT +
                 ", dertype=" + dertype +
                 ", gcColumn='" + gcColumn + ", \n   " +
-                //"gcmsSpectra=" + gcmsSpectra +
                 '}';
     }
 
-    /*public static void main(String[] args) {
-        //CompoundGC c = new CompoundGC("Dimethylsulfide", 228.0540469,	1.831);
-        try{
-            Compound compoundInfo = PubchemRest.getCompoundFromName("Dimethylsulfide");
-
-            //PubchemRest.getCompoundsFromInchis();
-
-            CompoundGC c = new CompoundGC(compoundInfo.getCompound_id(),
-                    compoundInfo.getCompoundName(),
-                    compoundInfo.getCasId(), compoundInfo.getFormula(), compoundInfo.getMonoisotopicMass(), compoundInfo.getCompound_status(),
-                    compoundInfo.getCompound_type(), compoundInfo.getLogP(), compoundInfo.getIdentifiersOwn(), compoundInfo.getIdentifiersParent(),
-                    228.0540469, 1.831);
-
-            System.out.println("C: "+c);
-            String a = c.getDertype().toString();
-            System.out.println("CInfo: "+a);
-            //System.out.println("CInfo: "+c.getDertype().toString());
-
-            if(a.equalsIgnoreCase("METHYL_CHLOROFORMATE")){
-                System.out.println("IF");
-            }
-
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }*/
 }

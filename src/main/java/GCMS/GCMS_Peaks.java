@@ -4,9 +4,7 @@ import java.util.List;
 
 public class GCMS_Peaks {
     private double mz;
-    //private List<Double> mz_list = null;
     private double intensity;
-    //private List<Double> intensity_list = null
 
     public GCMS_Peaks() {
         this.mz = -1;
