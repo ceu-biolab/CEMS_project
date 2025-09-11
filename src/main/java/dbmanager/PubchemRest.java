@@ -11,6 +11,7 @@ package dbmanager;
  */
 import cems_project.Compound;
 import cems_project.Identifier;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import constants.Constants;
@@ -32,6 +33,89 @@ import static constants.Constants.PUBCHEM_ENDPOINT_COMPOUND_NAME;
  */
 public class PubchemRest {
 
+    /**
+     * From the casId of a compound it gets the PubChem id
+     * @param casId
+     * @return an Integer. The Pubchem id
+     * @throws IOException
+     */
+    public static Integer getPCIDFromCasId(String casId) throws IOException{
+        String uriString = "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/"+casId+"/cids/JSON";
+
+        Request request = Request.get(uriString);
+
+        Response response = request.execute();
+        Content jsonResponse = response.returnContent();
+        String jsonResponseString = jsonResponse.asString();
+
+        JsonObject jsonResponseObj = JsonParser.parseString(jsonResponseString).getAsJsonObject();
+        JsonArray cidArray = jsonResponseObj
+                .getAsJsonObject("IdentifierList")
+                .getAsJsonArray("CID");
+
+        Integer cid = cidArray.get(0).getAsInt();
+
+        return cid;
+    }
+
+    /**
+     * From the inchi it access to pubchem website and gets the pubchem compound id of the compound
+     * @param inchi
+     * @return the PubChemId
+     * @throws IOException
+     */
+    public static Integer getPCIDFromInchi(String inchi) throws IOException{
+
+        Content jsonResponse = Request.post("https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/inchi/cids/JSON")
+                .bodyForm(Form.form().add("inchi", inchi).build())
+                .execute()
+                .returnContent();
+
+        String jsonResponseString = jsonResponse.asString();
+
+        JsonObject jsonResponseObj = JsonParser.parseString(jsonResponseString).getAsJsonObject();
+        JsonArray cidArray = jsonResponseObj
+                .getAsJsonObject("IdentifierList")
+                .getAsJsonArray("CID");
+
+        Integer cid = cidArray.get(0).getAsInt();
+
+        return cid;
+    }
+
+    /**
+     * From the smiles it accesses the pubchem website and gets the pubchem compound id of the compound
+     * @param smiles
+     * @return Integer: the PubChemId
+     * @throws IOException
+     */
+    public static Integer getPCIDFromSmiles(String smiles) throws IOException{
+        Content jsonResponse = Request.post("https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/cids/JSON")
+                .bodyForm(Form.form().add("smiles", smiles).build())
+                .execute()
+                .returnContent();
+
+        String jsonResponseString = jsonResponse.asString();
+
+        JsonObject jsonResponseObj = JsonParser.parseString(jsonResponseString).getAsJsonObject();
+        JsonArray cidArray = jsonResponseObj
+                .getAsJsonObject("IdentifierList")
+                .getAsJsonArray("CID");
+
+        Integer cid = cidArray.get(0).getAsInt();
+
+        return cid;
+    }
+
+    /**
+     * A loop to retry the inchi search in case of some error. It accesses PubChem website to get the information
+     * @param inchi
+     * @param retries number of retries
+     * @param sleep time for the loop to wait to try again if there is an error
+     * @return the identifiers of a compound
+     * @throws IOException
+     * @throws InterruptedException
+     */
     public static Identifier getIdentifiersFromInChIPC(String inchi, int retries, int sleep) throws IOException, InterruptedException {
         int rep = 0;
         while (rep <= retries) {
@@ -49,8 +133,15 @@ public class PubchemRest {
         return null;
     }
 
+    /**
+     * Gets the identifiers of a compound using the inchi of the compound and accessing pubchem website
+     * @param inchi
+     * @return the identifiers of the compound
+     * @throws IOException
+     * @throws NullPointerException
+     */
     public static Identifier getIdentifiersFromInChIPC(String inchi) throws IOException, NullPointerException {
-        Content content = Request.post("https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/inchi/property/InChIKey,CanonicalSMILES/JSON").
+        Content content = Request.post("https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/inchi/property/InChIKey,SMILES/JSON").
                 bodyForm(Form.form().add("inchi", inchi).build())
                 .execute().returnContent();
         String jsonResponseString = content.asString();
@@ -58,14 +149,25 @@ public class PubchemRest {
 
         JsonObject properties = jsonrepsonse.get(("PropertyTable")).getAsJsonObject().get("Properties").getAsJsonArray().get(0).getAsJsonObject();
         Integer cid = properties.get("CID").getAsInt();
-        String canonicalSmiles = properties.get("CanonicalSMILES").getAsString();
+        String smiles = properties.get("SMILES").getAsString();
         String inchi_key = properties.get("InChIKey").getAsString();
-        Identifier identifier = new Identifier(inchi, inchi_key, canonicalSmiles, cid);
+        Identifier identifier = new Identifier(inchi, inchi_key, smiles, cid);
         return identifier;
     }
 
+    /**
+     * It gets the compound information from pubchem website
+     * @param inchi
+     * @param compound_id
+     * @param name
+     * @param casId
+     * @param cembioId
+     * @return the compound
+     * @throws IOException
+     * @throws NullPointerException
+     */
     public static Compound getCompoundFromInChIPC(String inchi, Integer compound_id, String name, String casId, Integer cembioId) throws IOException, NullPointerException {
-        Content content = Request.post("https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/inchi/property/IUPACName,MonoisotopicMass,inchi,InChIKey,CanonicalSMILES,MolecularFormula,XLogP/JSON").
+        Content content = Request.post("https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/inchi/property/IUPACName,MonoisotopicMass,inchi,InChIKey,SMILES,MolecularFormula,XLogP/JSON").
                 bodyForm(Form.form().add("inchi", inchi).build())
                 .execute().returnContent();
         String jsonResponseString = content.asString();
@@ -80,7 +182,7 @@ public class PubchemRest {
         String molecularFormula = properties.get("MolecularFormula").getAsString();
         String inchi_key = properties.get("InChIKey").getAsString();
         inchi = properties.get("InChI").getAsString();
-        String smiles = properties.get("CanonicalSMILES").getAsString();
+        String smiles = properties.get("SMILES").getAsString();
         Double logP = null;
         if (properties.has("XLogP")) {
             logP = properties.get("XLogP").getAsDouble();
@@ -95,8 +197,14 @@ public class PubchemRest {
         return compound;
     }
 
+    /**
+     * It gets the identifiers of a compound using the inchikey. It accesses pubchem website
+     * @param inchi_key
+     * @return the identifiers of the compound
+     * @throws IOException
+     */
     public static Identifier getIdentifiersFromINCHIKEYPC(String inchi_key) throws IOException {
-        Content content = Request.post("https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/InChIKey/property/inchi,CanonicalSMILES/JSON").
+        Content content = Request.post("https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/InChIKey/property/inchi,SMILES/JSON").
                 bodyForm(Form.form().add("inchikey", inchi_key).build())
                 .execute().returnContent();
         String jsonResponseString = content.asString();
@@ -104,14 +212,20 @@ public class PubchemRest {
 
         JsonObject properties = jsonrepsonse.get(("PropertyTable")).getAsJsonObject().get("Properties").getAsJsonArray().get(0).getAsJsonObject();
         Integer cid = properties.get("CID").getAsInt();
-        String canonicalSmiles = properties.get("CanonicalSMILES").getAsString();
+        String smiles = properties.get("SMILES").getAsString();
         String inchi = properties.get("InChI").getAsString();
-        Identifier identifier = new Identifier(inchi, inchi_key, canonicalSmiles);
+        Identifier identifier = new Identifier(inchi, inchi_key, smiles);
         return identifier;
     }
 
+    /**
+     * From the inchikey it gets the pubchem id. It accesses the PubChem website
+     * @param inchi_key
+     * @return the id of the compound
+     * @throws IOException
+     */
     public static Integer getPCIDFromInchiKey(String inchi_key) throws IOException {
-        Content content = Request.post("https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/InChIKey/property/inchi,CanonicalSMILES/JSON").
+        Content content = Request.post("https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/InChIKey/property/inchi,SMILES/JSON").
                 bodyForm(Form.form().add("inchikey", inchi_key).build())
                 .execute().returnContent();
         String jsonResponseString = content.asString();
@@ -122,6 +236,12 @@ public class PubchemRest {
         return cid;
     }
 
+    /**
+     * From the smiles it gets the identifiers of a compound
+     * @param smiles
+     * @return the identifiers of a compound
+     * @throws IOException
+     */
     public static Identifier getIdentifiersFromSMILESPC(String smiles) throws IOException {
         Content content = Request.post("https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/property/InChI,inchikey/JSON").
                 bodyForm(Form.form().add("smiles", smiles).build())
@@ -137,10 +257,20 @@ public class PubchemRest {
         return identifier;
     }
 
+    /**
+     * From the name of a compound it search on PubChem website the compound information
+     * @param compound_id
+     * @param name
+     * @param casId
+     * @param cembioId
+     * @return a compound
+     * @throws IOException
+     * @throws IllegalArgumentException
+     */
     public static Compound getCompoundFromName(Integer compound_id, String name, String casId, Integer cembioId) throws IOException, IllegalArgumentException {
         String nameForSearch = name.trim();
         nameForSearch = nameForSearch.replaceAll(" ", "%20");
-        String uriString = PUBCHEM_ENDPOINT_COMPOUND_NAME + nameForSearch + "/property/IUPACName,MonoisotopicMass,inchi,InChIKey,CanonicalSMILES,MolecularFormula,XLogP/JSON";
+        String uriString = PUBCHEM_ENDPOINT_COMPOUND_NAME + nameForSearch + "/property/IUPACName,MonoisotopicMass,inchi,InChIKey,SMILES,MolecularFormula,XLogP/JSON";
 
         Request request = Request.get(uriString);
         request.addHeader("Connection", "keep-alive");
@@ -160,7 +290,7 @@ public class PubchemRest {
         String molecularFormula = properties.get("MolecularFormula").getAsString();
         String inchi_key = properties.get("InChIKey").getAsString();
         String inchi = properties.get("InChI").getAsString();
-        String smiles = properties.get("CanonicalSMILES").getAsString();
+        String smiles = properties.get("SMILES").getAsString();
         Double logP = null;
         if (properties.has("XLogP")) {
             logP = properties.get("XLogP").getAsDouble();
@@ -175,12 +305,19 @@ public class PubchemRest {
         return compound;
     }
 
-    //ESTA
+
+    /**
+     * From the name of a compound it search on PubChem website the compound information
+     * @param name
+     * @return the compound
+     * @throws IOException
+     * @throws IllegalArgumentException
+     */
     public static Compound getCompoundFromName(String name) throws IOException, IllegalArgumentException {
 
         String nameForSearch = name.trim();
         nameForSearch = nameForSearch.replaceAll(" ", "%20");
-        String uriString = PUBCHEM_ENDPOINT_COMPOUND_NAME + nameForSearch + "/property/IUPACName,MonoisotopicMass,inchi,InChIKey,CanonicalSMILES,MolecularFormula,XLogP/JSON";
+        String uriString = PUBCHEM_ENDPOINT_COMPOUND_NAME + nameForSearch + "/property/IUPACName,MonoisotopicMass,inchi,InChIKey,SMILES,MolecularFormula,XLogP/JSON";
 
         Request request = Request.get(uriString);
         request.addHeader("Connection", "keep-alive");
@@ -200,7 +337,7 @@ public class PubchemRest {
         String molecularFormula = properties.get("MolecularFormula").getAsString();
         String inchi_key = properties.get("InChIKey").getAsString();
         String inchi = properties.get("InChI").getAsString();
-        String smiles = properties.get("CanonicalSMILES").getAsString();
+        String smiles = properties.get("SMILES").getAsString();
         Double logP = null;
         if (properties.has("XLogP")) {
             logP = properties.get("XLogP").getAsDouble();
@@ -217,11 +354,65 @@ public class PubchemRest {
         return compound;
     }
 
+    /**
+     * Using a non IUPAC name it gets the compound information and IUPAC name of the compound from the PubChem website
+     * @param nameNotIUPAC alternative name
+     * @return compound with IUPAC name
+     * @throws IOException
+     * @throws IllegalArgumentException
+     */
+    public static Compound getCompoundIUPACNameFromName(String nameNotIUPAC)  throws IOException, IllegalArgumentException {
+
+        String nameForSearch = nameNotIUPAC.trim();
+        nameForSearch = nameForSearch.replaceAll(" ", "%20");
+        String uriString = PUBCHEM_ENDPOINT_COMPOUND_NAME + nameForSearch + "/property/IUPACName,MonoisotopicMass,inchi,InChIKey,SMILES,MolecularFormula,XLogP/JSON";
+
+        Request request = Request.get(uriString);
+            request.addHeader("Connection", "keep-alive");
+
+        Response response = request.execute();
+        Content jsonResponse = response.returnContent();
+        String jsonResponseString = jsonResponse.asString();
+
+        JsonObject jsonrepsonse = JsonParser.parseString(jsonResponseString).getAsJsonObject();
+        JsonObject properties = jsonrepsonse.get(("PropertyTable")).getAsJsonObject().get("Properties").getAsJsonArray().get(0).getAsJsonObject();
+        Integer cid = properties.get("CID").getAsInt();
+            System.out.println("cid = " + cid);
+        String IUPACName = null;
+            if (properties.has("IUPACName")) {
+            IUPACName = properties.get("IUPACName").getAsString();
+        }
+        String molecularFormula = properties.get("MolecularFormula").getAsString();
+        String inchi_key = properties.get("InChIKey").getAsString();
+        String inchi = properties.get("InChI").getAsString();
+        String smiles = properties.get("SMILES").getAsString();
+        Double logP = null;
+            if (properties.has("XLogP")) {
+            logP = properties.get("XLogP").getAsDouble();
+        }
+        Double mass = properties.get("MonoisotopicMass").getAsDouble();
+        String casId = null;
+        Integer compound_id = 0;
+        Integer compound_status = 0;
+        Integer compound_type = 0;
+
+        Identifier identifiers = new Identifier(inchi, inchi_key, smiles, cid);
+        Compound compound = new Compound(compound_id, IUPACName, casId, molecularFormula, mass, compound_status, compound_type, logP, identifiers);
+
+        return compound;
+    }
+
+    /**
+     * From the name of a compound it gets the identifiers
+     * @param name
+     * @return the identifiers
+     * @throws IOException
+     */
     public static Identifier getIdentifierFromName(String name) throws IOException {
 
         String nameForSearch = name.trim();
         nameForSearch = nameForSearch.replaceAll(" ", "%20");
-        String uriString = PUBCHEM_ENDPOINT_COMPOUND_NAME + nameForSearch + "/property/inchi,InChIKey,CanonicalSMILES/JSON";
+        String uriString = PUBCHEM_ENDPOINT_COMPOUND_NAME + nameForSearch + "/property/inchi,InChIKey,SMILES/JSON";
 
         Request request = Request.get(uriString);
         request.addHeader("Connection", "keep-alive");
@@ -235,13 +426,19 @@ public class PubchemRest {
         Integer pc_id = properties.get("CID").getAsInt();
         String inchi_key = properties.get("InChIKey").getAsString();
         String inchi = properties.get("InChI").getAsString();
-        String smiles = properties.get("CanonicalSMILES").getAsString();
+        String smiles = properties.get("SMILES").getAsString();
 
         Identifier identifier = new Identifier(inchi, inchi_key, smiles, pc_id);
 
         return identifier;
     }
 
+    /**
+     * From the name of a compound it gets the pubchem id
+     * @param name
+     * @return the pubchem id
+     * @throws IOException
+     */
     public static int getPCIDFromName(String name) throws IOException {
 
         String nameForSearch = name.trim();
@@ -261,8 +458,14 @@ public class PubchemRest {
         return cid;
     }
 
+    /**
+     * From the PubChem id it gets the information of the compound from PubChem website
+     * @param pc_id PubChem id
+     * @return The compound with the pc_id
+     * @throws IOException
+     */
     public static Compound getCompoundFromPCID(int pc_id) throws IOException {
-        String uriString = Constants.PUBCHEM_ENDPOINT_COMPOUND + pc_id + "/property/IUPACName,MonoisotopicMass,inchi,InChIKey,CanonicalSMILES,MolecularFormula,XLogP/JSON";
+        String uriString = Constants.PUBCHEM_ENDPOINT_COMPOUND + pc_id + "/property/IUPACName,MonoisotopicMass,inchi,InChIKey,SMILES,MolecularFormula,XLogP/JSON";
         Request request = Request.get(uriString);
         request.addHeader("Connection", "keep-alive");
 
@@ -280,7 +483,7 @@ public class PubchemRest {
         String molecularFormula = properties.get("MolecularFormula").getAsString();
         String inchi_key = properties.get("InChIKey").getAsString();
         String inchi = properties.get("InChI").getAsString();
-        String smiles = properties.get("CanonicalSMILES").getAsString();
+        String smiles = properties.get("SMILES").getAsString();
         Double logP = null;
         if (properties.has("XLogP")) {
             logP = properties.get("XLogP").getAsDouble();
@@ -480,10 +683,10 @@ public class PubchemRest {
 //            String smilesInput = "CCC=CCC=CCC=CCC=CCC=CCC=CCCC(=O)OC(C)CCCCCCCCCCCCCCCCCCCCCC(=O)O";
 //            Identifier identifier = getIdentifiersFromInChIPC(inchiInput);
 //            Integer cid = getPCIDFromInchiKey(inchiKeyInput);
-//            String canonicalSmiles = identifier.getSmiles();
+//            String smiles = identifier.getSmiles();
 //            String InchiKey = identifier.getInchi_key();
 //            System.out.println(cid);
-//            System.out.println(canonicalSmiles);
+//            System.out.println(smiles);
 //            System.out.println(InchiKey);
 //
 //            if (cid == 134777005) {

@@ -22,7 +22,8 @@ import java.util.Objects;
 public class Compound {
 
     private Integer compound_id;
-    private final String compoundName;
+    //private final String compoundName;
+    protected String compoundName; //Changed so CompoundGC can access
     private final String casId;
     private final String formula;
     private final Double monoisotopicMass;
@@ -83,10 +84,6 @@ public class Compound {
         this(null, null, null, null, null, null, null, null, identifiers);
     }
 
-    public Compound() {
-        this(null, null, null, null, null, null, null, null, null);
-    }
-
     public Compound(Integer id, Identifier i) {
         this(id, null, null, null, null, null, null, null, i);
     }
@@ -115,21 +112,22 @@ public class Compound {
         return monoisotopicMass;
     }
 
-    //    public Integer getCharge_type() {
-//        return charge_type;
-//    }
-//
-//    public Integer getCharge_number() {
-//        return charge_number;
-//    }
-//
-//    public String getFormula_type() {
-//        return formula_type;
-//    }
-//
-//    public Integer getFormula_type_int() {
-//        return formula_type_int;
-//    }
+    public Integer getCharge_type() {
+        return charge_type;
+    }
+
+    public Integer getCharge_number() {
+        return charge_number;
+    }
+
+    public String getFormula_type() {
+        return formula_type;
+    }
+
+    public Integer getFormula_type_int() {
+        return formula_type_int;
+    }
+
     public Integer getCompound_status() {
         return compound_status;
     }

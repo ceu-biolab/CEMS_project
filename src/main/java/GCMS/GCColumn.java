@@ -1,0 +1,5 @@
+package GCMS;
+
+public enum GCColumn {
+    STANDARD_NON_POLAR, SEMISTANDARD_NON_POLAR, STANDARD_POLAR
+}
