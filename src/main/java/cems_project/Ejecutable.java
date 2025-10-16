@@ -5,7 +5,6 @@
  */
 package cems_project;
 
-import dbmanager.ChemSpiderREST;
 import dbmanager.ClassyFire;
 import dbmanager.PubchemRest;
 import exceptions.CompoundNotClassifiedException;
@@ -73,10 +72,9 @@ public class Ejecutable {
         String inchi = c.getIdentifiersParent().getInchi();
         String inchiKey = null;
         try {
-            inchiKey = ChemSpiderREST.getINCHIKeyFromInchi(inchi);
+            Identifier identifiers = PubchemRest.getIdentifiersFromInChIPC(inchi);
+            inchiKey = identifiers.getInchi_key();
         } catch (IOException e) {
-            System.out.println("Check INCHI KEY FOR COMPOUND " + c.getCompound_id());
-        } catch (WrongRequestException e) {
             System.out.println("Check INCHI KEY FOR COMPOUND " + c.getCompound_id());
         }
         try {

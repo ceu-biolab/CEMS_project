@@ -39,13 +39,9 @@ public class Constants {
     public static String OUTPUT_DIRECTORY = RESOURCES_PATH + "output/";
     public static final String PUBCHEM_ENDPOINT_COMPOUND = "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/";
     public static final String PUBCHEM_ENDPOINT_COMPOUND_NAME = "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/";
-
-    public static final String CHEMSPIDER_END_POINT = "https://www.chemspider.com/InChI.asmx/";
-    public static final String CHEMSPIDER_SERVICE_INCHI_TO_INCHIKEY = CHEMSPIDER_END_POINT + "InChIToInChIKey";
-    public static final String CHEMSPIDER_SERVICE_INCHI_TO_MOL = CHEMSPIDER_END_POINT + "InChIToMol";
-    public static final String CHEMSPIDER_SERVICE_INCHI_TO_SMILES = CHEMSPIDER_END_POINT + "InChIToSMILES";
-    public static final String CHEMSPIDER_SERVICE_INCHIKEY_TO_INCHI = CHEMSPIDER_END_POINT + "InChIKeyToInChI";
-    public static final String CHEMSPIDER_SERVICE_INCHIKEY_TO_MOL = CHEMSPIDER_END_POINT + "InChIKeyToMol";
+    public static final String PUBCHEM_ENDPOINT_INCHI_TO_INCHIKEY_START = "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/inchi/";
+    public static final String PUBCHEM_ENDPOINT_INCHI_TO_INCHIKEY_END = "/property/InChIKey/JSON";
+    public static final String CHEBI_COMPOUND_ENDPOINT = "https://www.ebi.ac.uk/chebi/backend/api/public/compound/";
 
     public static final String CAS_ONLINE_PATH = "https://commonchemistry.cas.org/detail?cas_rn=";
 

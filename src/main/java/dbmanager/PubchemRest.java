@@ -655,6 +655,20 @@ public class PubchemRest {
             Logger.getLogger(PubchemRest.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
+
+    public static String inchiToInchiKeyPubChemREST(String inchi) throws IOException {
+        String uri = Constants.PUBCHEM_ENDPOINT_INCHI_TO_INCHIKEY_START
+                + inchi + Constants.PUBCHEM_ENDPOINT_INCHI_TO_INCHIKEY_END;
+        Content content = Request.post(uri).
+                bodyForm(Form.form().add("inchi", inchi).build())
+                .execute().returnContent();
+        String jsonResponseString = content.asString();
+        JsonObject jsonrepsonse = JsonParser.parseString(jsonResponseString).getAsJsonObject();
+
+        JsonObject properties = jsonrepsonse.get(("PropertyTable")).getAsJsonObject().get("Properties").getAsJsonArray().get(0).getAsJsonObject();
+        String inchi_key = properties.get("InChIKey").getAsString();
+        return inchi_key;
+    }
 //    public static void main(String[] args) {
 ////        Compound c = new Compound("DL-α-Hydroxycaproic acid");
 //        Compound c = new Compound("Acetyl-L-carnitine hydrochloride");

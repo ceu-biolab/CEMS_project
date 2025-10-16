@@ -24,6 +24,8 @@ public class ConstantQueries {
     public static final String INSERT_COMPOUNDS = "INSERT INTO compounds (compound_name, formula, mass) VALUES (?, ?, ?)";
     public static final String INSERT_COMP_IDENT = "INSERT INTO compound_identifiers (compound_id, inchi, inchi_key, smiles) VALUES (?, ?, ?, ?)";
     public static final String INSERT_COMP_HMDB = "INSERT INTO compounds_hmdb (hmdb_id, compound_id) VALUES (?, ?)";
+    public static final String INSERT_COMP_KEGG = "INSERT INTO compounds_kegg (kegg_id, compound_id) VALUES (?, ?)";
+    public static final String INSERT_COMP_CHEBI = "INSERT INTO compounds_chebi (chebi_id, compound_id) VALUES (?, ?)";
     public static final String INSERT_COMP_PC = "INSERT INTO compounds_pc (pc_id, compound_id) VALUES (?, ?)";
     public static final String SELECT_CE_EFF_MOB_ID = "SELECT eff_mob_id FROM eff_mob WHERE compound_id = ? AND eff_mob_exp_prop_id = ?";
     public static final String SELECT_CE_EXP_PROP = "SELECT ce_exp_prop_id FROM ce_experimental_properties WHERE buffer = ? AND temperature = ? AND polarity = ?";

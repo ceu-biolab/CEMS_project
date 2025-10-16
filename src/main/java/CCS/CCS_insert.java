@@ -8,14 +8,9 @@ import java.util.regex.Pattern;
 
 import cems_project.Identifier;
 import chemicalFormula.Element;
-import dbmanager.ChemSpiderREST;
 import dbmanager.PubchemRest;
 import exceptions.WrongRequestException;
-import org.apache.commons.compress.archivers.dump.InvalidFormatException;
-import org.apache.poi.EncryptedDocumentException;
 import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.xssf.usermodel.XSSFSheet;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import org.openscience.cdk.DefaultChemObjectBuilder;
 import org.openscience.cdk.exception.CDKException;
@@ -27,25 +22,17 @@ import org.openscience.cdk.tools.manipulator.MolecularFormulaManipulator;
 import org.openscience.cdk.qsar.DescriptorValue;
 import org.openscience.cdk.qsar.result.DoubleResult;
 import org.openscience.cdk.qsar.descriptors.molecular.XLogPDescriptor;
-import org.openscience.cdk.qsar.descriptors.molecular.WHIMDescriptor;
-import org.openscience.cdk.qsar.DescriptorEngine;
-import org.openscience.cdk.silent.SilentChemObjectBuilder;
-import org.openscience.cdk.qsar.IAtomicDescriptor;
-import org.openscience.cdk.qsar.IDescriptor;
-import org.openscience.cdk.qsar.result.IDescriptorResult;
-import org.openscience.cdk.qsar.descriptors.atomic.*;
-import org.openscience.cdk.qsar.result.IntegerResult;
-import org.openscience.cdk.qsar.result.BooleanResult;
 
 import static chemicalFormula.PeriodicTable.*;
+import static dbmanager.PubchemRest.getIdentifiersFromInChIPC;
+import static dbmanager.PubchemRest.getIdentifiersFromSMILESPC;
 
 
 public class CCS_insert {
     public static void main(String[] args) throws ClassNotFoundException, SQLException, IOException {
 
-        String filePathPos = "D:\\BECA PREGRADO\\CCS_oxylipin_database_ceumass_positive.xlsx";
-        String filePathNeg = "D:\\BECA PREGRADO\\CCS_oxylipin_database_ceumass_negative.xlsx";
-
+        String filePathPos = "/home/ceu/research/CCS/CCS_oxylipin_database_ceumass_positive.xlsx";
+        String filePathNeg = "/home/ceu/research/CCS/CCS_oxylipin_database_ceumass_negative.xlsx";
         List<Integer> compoundIDpresent = new ArrayList<>();
         List<Integer> compoundIDnot = new ArrayList<>();
 
@@ -125,12 +112,12 @@ public class CCS_insert {
                         }
 
                         //Get identifier
-                        Identifier identifier = fetchIdentifierFromChemSpider(smiles);
+                        Identifier identifier = getIdentifiersFromSMILESPC(smiles);
 
                         //Connection to compounds DDBB
-                        String jdbcURLCMM = "jdbc:mysql://localhost:3306/compounds";
-                        String user = "root";
-                        String password = "root";
+                        String jdbcURLCMM = "jdbc:mysql://localhost:3306/metabolites";
+                        String user = "alberto";
+                        String password = "alberto";
 
                         try (Connection CMMConnection = DriverManager.getConnection(jdbcURLCMM, user, password)) {
                             Integer pc_id;
@@ -233,7 +220,7 @@ public class CCS_insert {
             }
             System.out.println("Process done");
 
-        } catch (IOException | WrongRequestException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
@@ -420,10 +407,4 @@ public class CCS_insert {
         return AtomContainerManipulator.getTotalFormalCharge(molecule);
     }
 
-    public static Identifier fetchIdentifierFromChemSpider(String smiles) throws IOException, WrongRequestException {
-        ChemSpiderREST chemSpider = new ChemSpiderREST();
-        String inchi = chemSpider.getInchiFromSmiles(smiles);
-        String inchiKey = chemSpider.getINCHIKeyFromInchi(inchi);
-        return new Identifier(inchi, inchiKey, smiles);
-    }
 }

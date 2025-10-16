@@ -1,9 +1,11 @@
 package dbmanager;
 
+import exceptions.ChebiException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import uk.ac.ebi.chebi.webapps.chebiWS.model.ChebiWebServiceFault_Exception;
+
+import java.io.IOException;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -20,16 +22,15 @@ class ChebiDatabaseTest {
     @Test
     void getInChIFromChebID() {
 
-        System.out.println(System.getProperty("user.dir"));
-        System.out.println("getInChIFromChebIDTest");
         try {
             String expResult = "InChI=1S/C8H11NO3/c9-4-8(12)5-1-2-6(10)7(11)3-5/h1-3,8,10-12H,4,9H2/t8-/m0/s1";
-            String result = ChebiDatabase.getInChIFromChebID(1);
-            System.out.println(result);
+            String result = ChebiDatabase.getIdentifierFromChebiID(1).getInchi();
             assertEquals(expResult, result);
         }
-        catch(ChebiWebServiceFault_Exception ex)
-        {
+        catch(ChebiException ex) {
+            fail("Check the exception " + ex);
+        }
+        catch (IOException ex) {
             fail("Check the exception " + ex);
         }
     }
@@ -41,7 +42,17 @@ class ChebiDatabaseTest {
 
     @Test
     void getAsciiName() {
-        fail("Prototype");
+        try {
+            String expResult = "(R)-noradrenaline";
+            String result = ChebiDatabase.getAsciiName(1);
+            assertEquals(expResult, result);
+        }
+        catch(ChebiException ex) {
+            fail("Check the exception " + ex);
+        }
+        catch (IOException ex) {
+            fail("Check the exception " + ex);
+        }
     }
 
     @Test

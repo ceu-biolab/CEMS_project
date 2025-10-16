@@ -7,12 +7,11 @@ package dbmanager;
 
 import GCMS.CompoundGC;
 import GCMS.GCMS_Peaks;
-import cems_project.CEMSExperimentalConditions;
-import cems_project.Fragment;
-import cems_project.CEMSCompound;
+import cems_project.*;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import exceptions.CompoundNotFoundException;
 import exceptions.WrongRequestException;
 import experimental_properties.BufferType;
 import experimental_properties.IonizationModeType;
@@ -30,8 +29,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import lombok.NonNull;
 
 import static utilities.FileIO.readStringFromFile;
+
 
 /**
  * @author alberto.gildelafuent
@@ -116,6 +117,8 @@ public class DBManager {
         return 0;
     }
 
+
+
     /**
      * Return the compound id from the inchiKey of a compound
      *
@@ -177,7 +180,7 @@ public class DBManager {
      * @param m CEMSCompound
      * @return compound_id
      */
-    public int insertCompound(CEMSCompound m) {
+    public int insertCompound(Compound m) {
 
         int compound_id = 0;
         String sql = ConstantQueries.INSERT_COMPOUNDS;
@@ -215,8 +218,9 @@ public class DBManager {
             PreparedStatement ps = this.connection.prepareStatement(sql);
             ps.setInt(1, compound_id);
             ps.setString(2, inchi);
-            String key = ChemSpiderREST.getINCHIKeyFromInchi(inchi);
-            String smiles = ChemSpiderREST.getSMILESFromInchi(inchi);
+            Identifier identifiers = PubchemRest.getIdentifiersFromInChIPC(inchi);
+            String key = identifiers.getInchi_key();
+            String smiles = identifiers.getSmiles();
             ps.setString(3, key);
             ps.setString(4, smiles);
             ps.executeUpdate();
@@ -225,31 +229,77 @@ public class DBManager {
             Logger.getLogger(DBManager.class.getName()).log(Level.SEVERE, null, ex);
         } catch (IOException ioe) {
             System.out.println("ex: " + ioe);
-        } catch (WrongRequestException wre) {
-            System.out.println(wre);
         }
     }
 
     /**
      * Insert on the table compounds_hmdb the compound_id and HMBD
      *
-     * @param compound_id
-     * @param HMDB
+     * @param compoundId
+     * @param hmdbId
      */
-    public void insertHMDB(int compound_id, String HMDB) {
+    public void insertHMDB(int compoundId, String hmdbId) {
         String sql = ConstantQueries.INSERT_COMP_HMDB;
         try {
-            if (HMDB != null) {
+            if (hmdbId != null) {
                 //we just have to add the reference when it exists
                 PreparedStatement ps = this.connection.prepareStatement(sql);
-                ps.setString(1, HMDB);
-                ps.setInt(2, compound_id);
+                ps.setString(1, hmdbId);
+                ps.setInt(2, compoundId);
                 ps.executeUpdate();
             }
         } catch (SQLException ex) {
             //Logger.getLogger(DBManager.class.getName()).log(Level.SEVERE, null, ex);
             if (ex.getErrorCode() == 1062) { //code Duplicate Entry
                 System.out.println("No se inserta la referencia HMDB porque ya estaba metida.");
+            }
+        }
+    }
+
+    /**
+     * Insert on the table compounds_kegg the compound_id and Kegg
+     *
+     * @param compoundId
+     * @param keggId
+     */
+    public void insertKEGG(int compoundId, String keggId) {
+        String sql = ConstantQueries.INSERT_COMP_KEGG;
+        try {
+            if (keggId != null) {
+                //we just have to add the reference when it exists
+                PreparedStatement ps = this.connection.prepareStatement(sql);
+                ps.setString(1, keggId);
+                ps.setInt(2, compoundId);
+                ps.executeUpdate();
+            }
+        } catch (SQLException ex) {
+            //Logger.getLogger(DBManager.class.getName()).log(Level.SEVERE, null, ex);
+            if (ex.getErrorCode() == 1062) { //code Duplicate Entry
+                System.out.println("No se inserta la referencia KEGG porque ya estaba metida.");
+            }
+        }
+    }
+
+    /**
+     * Insert on the table compounds_chebi the compound_id and Kegg
+     *
+     * @param compoundId
+     * @param chebiId
+     */
+    public void insertChebi(int compoundId, Integer chebiId) {
+        String sql = ConstantQueries.INSERT_COMP_CHEBI;
+        try {
+            if (chebiId != null) {
+                //we just have to add the reference when it exists
+                PreparedStatement ps = this.connection.prepareStatement(sql);
+                ps.setInt(1, chebiId);
+                ps.setInt(2, compoundId);
+                ps.executeUpdate();
+            }
+        } catch (SQLException ex) {
+            //Logger.getLogger(DBManager.class.getName()).log(Level.SEVERE, null, ex);
+            if (ex.getErrorCode() == 1062) { //code Duplicate Entry
+                System.out.println("No se inserta la referencia CHEBI porque ya estaba metida.");
             }
         }
     }
@@ -1183,12 +1233,10 @@ public class DBManager {
         }
     }
 
-
-
     public static void main(String[] args) {
 
         DBManager db = new DBManager();
-        String filename = "resources/connectionData.pass";  //este file contiene los datos de acceso a la database (notación JSON: clave-valor)
+        String filename = "resources/connectionData.pass";
         try {
             Gson gson = new Gson();
             String readJSONStr = readStringFromFile(filename);
@@ -1198,48 +1246,148 @@ public class DBManager {
             String dbUser = jsonObj.get("db_user").getAsString();
             String dbPassword = jsonObj.get("db_password").getAsString();
 
-            // Here you can check the values obtained
-            //System.out.println("DB_NAME: " + dbName + " DBUser: " + dbUser + " DBPassword: " + dbPassword);
             db. connectToDB("jdbc:mysql://localhost/" + dbName + "?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true", dbUser, dbPassword);
 
-            //GET INT
             int id = db.getInt("select compound_id from compounds where formula = \"C5H11NO4\"");
             System.out.println(id);
 
-            //GET STRING
-            //String word = db.getString("Select \"asd\"");
-            //System.out.println(word);
-            //GETMETABOLITO
-            //Metabolito m1 = db.getMetabolito("Select * from metabolites where ID = 2");
-            //Metabolito m1 = db.getMetabolito("Select * from metabolites");
-            //System.out.println("Metabolito 1:\n" + m1);
-            //GETFRAGMENTOS
-            //List<Fragment> fragments = db.getFragments(2);
-            //System.out.println("Fragments: \n" + fragments);
-            //GETMETABOLITOS
-            //List<Metabolito> metabs = db.getMetabolitos("select * from metabolites where id = 1");
-            //List<Metabolito> metabs = db.getMetabolitos("select * from metabolites");
-            //System.out.println("Estos son los metabolitos almacenados: \n" + metabs);
-            //List<Fragment> fragments = db.getFragments(2);
-            //System.out.println("Estos son los fragmentos almacenados: \n" + fragments);
-            // SI NO INSERTA NADA, AUTO_GENERATED KEYS DEVUELVE 0
-            //int id_updated = db.exampleQueryToGetTheLastGeneratedIdFromAnInsert("update prueba set f1 = 2 where id=2");
-            //System.out.println(id_updated);
-            //int id_inserted = db.exampleQueryToGetTheLastGeneratedIdFromAnInsert("insert into prueba (f1) values (1)");
-            //System.out.println(id_inserted);
-            //INSERT METABOLITES
-//            List<Fragment> fragments = new LinkedList();
-//            fragments.add(new Fragment(78.9594));
-//            fragments.add(new Fragment(96.9671));
-//            fragments.add(new Fragment(138.9802));
-//            Metabolito metabolito = new Metabolito("Fructose 1,6 Biphosphate", "C6H14O12P2", 339.9960, 338.9887, 9.739, 27.135, 0.36, 20.187, 0.48, fragments);
-//            db.insertMetabolito(metabolito);
-            //db.insertFragments(1, fragments);
         } catch (FileNotFoundException ex) {
             Logger.getLogger(DBManager.class.getName()).log(Level.SEVERE, null, ex);
 
         } catch (IOException ioe) {
             Logger.getLogger(DBManager.class.getName()).log(Level.SEVERE, null, ioe);
         }
+    }
+
+    public Integer getChebiIdFromCompoundId(int compoundId) throws CompoundNotFoundException, SQLException {
+        String sql = "SELECT chebi_id FROM compounds_chebi WHERE compound_id = ?";
+        try (PreparedStatement ps = this.connection.prepareStatement(sql)) {
+            ps.setInt(1, compoundId);
+            ResultSet rs = ps.executeQuery();
+            if(rs.next())
+            {
+                return rs.getInt("chebi_id");
+            }
+        }
+        throw new CompoundNotFoundException(compoundId + " Chebi ID not found");
+    }
+
+    public String getHmdbIdFromCompoundId(int compoundId) throws CompoundNotFoundException, SQLException {
+        String sql = "SELECT hmdb_id FROM compounds_hmdb WHERE compound_id = ?";
+        try (PreparedStatement ps = this.connection.prepareStatement(sql)) {
+            ps.setInt(1, compoundId);
+            ResultSet rs = ps.executeQuery();
+            if(rs.next())
+            {
+                return rs.getString("hmdb_id");
+            }
+        }
+        throw new CompoundNotFoundException(compoundId + " HMDB ID not found");
+    }
+
+    public Integer getPubchemIdFromCompoundId(int compoundId) throws CompoundNotFoundException, SQLException {
+        String sql = "SELECT pc_id FROM compounds_pc WHERE compound_id = ?";
+        try (PreparedStatement ps = this.connection.prepareStatement(sql)) {
+            ps.setInt(1, compoundId);
+            ResultSet rs = ps.executeQuery();
+            if(rs.next())
+            {
+                return rs.getInt("pc_id");
+            }
+        }
+        throw new CompoundNotFoundException(compoundId + " Pubchem ID not found");
+    }
+
+    public String getKeggIdFromCompoundId(int compoundId) throws CompoundNotFoundException, SQLException {
+        String sql = "SELECT kegg_id FROM compounds_kegg WHERE compound_id = ?";
+        try (PreparedStatement ps = this.connection.prepareStatement(sql)) {
+            ps.setInt(1, compoundId);
+            ResultSet rs = ps.executeQuery();
+            if(rs.next())
+            {
+                return rs.getString("kegg_id");
+            }
+        }
+        throw new CompoundNotFoundException(compoundId + " KEGG ID not found");
+    }
+
+    public String getInchiFromCompoundId(int compoundId) throws CompoundNotFoundException, SQLException {
+        String sql = "SELECT inchi FROM compound_identifiers WHERE compound_id = ?";
+        try (PreparedStatement ps = this.connection.prepareStatement(sql)) {
+            ps.setInt(1, compoundId);
+            ResultSet rs = ps.executeQuery();
+            if(rs.next())
+            {
+                return rs.getString("inchi");
+            }
+        }
+        throw new CompoundNotFoundException(compoundId + " identifiers not found");
+    }
+
+    public Integer getCompoundIdByHmdb(String hmdbId) throws CompoundNotFoundException,SQLException {
+        String sql = "SELECT compound_id FROM compounds_hmdb WHERE hmdb_id = ?";
+        try (PreparedStatement ps = this.connection.prepareStatement(sql)) {
+            ps.setString(1, hmdbId);
+            ResultSet rs = ps.executeQuery();
+            if(rs.next())
+            {
+            return rs.getInt("compound_id");
+            }
+        }
+        throw new CompoundNotFoundException(hmdbId + " not found");
+    }
+
+    public Integer getCompoundIdByPubChem(Integer pubchemId) throws CompoundNotFoundException,SQLException {
+        String sql = "SELECT compound_id FROM compounds_pc WHERE pc_id = ?";
+        try (PreparedStatement ps = this.connection.prepareStatement(sql)) {
+            ps.setInt(1, pubchemId);
+            ResultSet rs = ps.executeQuery();
+            if(rs.next())
+            {
+                return rs.getInt("compound_id");
+            }
+        }
+        throw new CompoundNotFoundException(pubchemId + " not found");
+    }
+
+    public Integer getCompoundIdByKegg(String keggId) throws CompoundNotFoundException,SQLException {
+        String sql = "SELECT compound_id FROM compounds_kegg WHERE kegg_id = ?";
+        try (PreparedStatement ps = this.connection.prepareStatement(sql)) {
+            ps.setString(1, keggId);
+            ResultSet rs = ps.executeQuery();
+            if(rs.next())
+            {
+                return rs.getInt("compound_id");
+            }
+        }
+        throw new CompoundNotFoundException(keggId + " not found");
+    }
+
+    public Compound getCompoundByCompoundId(int compoundId) throws CompoundNotFoundException, SQLException {
+        String sql = "SELECT * FROM compounds_view WHERE compound_id = ?";
+        try (PreparedStatement ps = this.connection.prepareStatement(sql)) {
+            ps.setInt(1, compoundId);
+            ResultSet rs = ps.executeQuery();
+            if(rs.next())
+            {
+                String inchi = rs.getString("inchi");
+                String inchi_key = rs.getString("inchi_key");
+                String smiles = rs.getString("smiles");
+                int pc_id = rs.getInt("pc_id");
+
+                Identifier identifiers = new Identifier(inchi, inchi_key, smiles, pc_id);
+                String IUPACName = rs.getString("compound_name");
+                String casId = rs.getString("cas_id");
+                String molecularFormula = rs.getString("formula");
+                Double mass = rs.getDouble("mass");
+                int compound_status = rs.getInt("compound_status");
+                int compound_type = rs.getInt("compound_type");
+                Double logP = rs.getDouble("logP");
+                Compound compound = new Compound(compoundId, IUPACName, casId, molecularFormula, mass,
+                        compound_status, compound_type, logP, identifiers);
+                return compound;
+            }
+        }
+        throw new CompoundNotFoundException(compoundId + " not found");
     }
 }
