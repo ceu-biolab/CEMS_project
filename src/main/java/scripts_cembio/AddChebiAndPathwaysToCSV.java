@@ -53,18 +53,20 @@ public class AddChebiAndPathwaysToCSV {
                 System.out.println(Arrays.toString(line));
 
                 String compoundName = line[0].equals("-") ? null : line[0];
-                String hmdbId = line[1].equals("-") ? null : line[0];
+                String hmdbId = line[1].equals("-") ? null : line[1];
                 Integer pubchemId = null;
                 try {
                     pubchemId = Integer.parseInt(line[2].trim());
                 } catch (NumberFormatException e) {
                     pubchemId = null;
                 }
-                String keggId = line[3].equals("-") ? null : line[0];
+                String keggId = line[3].equals("-") ? null : line[3];
 
-                Integer compoundId = null;
+                Integer compoundId = 0;
                 Integer chebiId = null;
-
+                if (pubchemId == 42953) {
+                    System.out.println("here");
+                }
                 try {
                     // 🔍 1️⃣ Try HMDB → PubChem → KEGG
                     Compound compound = null;
@@ -74,32 +76,38 @@ public class AddChebiAndPathwaysToCSV {
                     } catch (CompoundNotFoundException compoundPCNotFoundException) {
                         try {
                             compoundId = db.getCompoundIdByHmdb(hmdbId);
+                            compound = db.getCompoundByCompoundId(compoundId);
                         } catch (CompoundNotFoundException hmdbNotFoundException) {
                             try {
                                 compoundId = db.getCompoundIdByKegg(keggId);
+                                compound = db.getCompoundByCompoundId(compoundId);
                             } catch (CompoundNotFoundException keggNotFoundException) {
-                                compoundId = compound.getCompound_id();
-                                if(compoundId == 0)
-                                {
-                                    compoundId = db.insertCompound(compound);
-                                    db.insertCompoundIdentifiers(compoundId, compound.getINCHI());
-                                    if(hmdbId != null && !hmdbId.isEmpty() && !hmdbId.equals("-")) {
-                                        db.insertHMDB(compoundId, hmdbId);
+
+                                if (compoundId == 0) {
+                                    try {
+                                        compound = PubchemRest.getCompoundFromPCID(pubchemId);
+                                    } catch (Exception exception) {
+                                        compound = PubchemRest.getCompoundFromName(compoundName);
                                     }
-                                    if(pubchemId != null ) {
-                                        db.insertPC(compoundId, pubchemId);
-                                    }
-                                    if(keggId != null && !keggId.isEmpty() && !keggId.equals("-")) {
-                                        db.insertKEGG(compoundId, keggId);
+                                    if (compound == null) {
+                                        compoundId = db.insertCompound(compound);
+                                        db.insertCompoundIdentifiers(compoundId, compound.getINCHI());
+                                        if (hmdbId != null && !hmdbId.isEmpty() && !hmdbId.equals("-")) {
+                                            db.insertHMDB(compoundId, hmdbId);
+                                        }
+                                        if (pubchemId != null) {
+                                            db.insertPC(compoundId, pubchemId);
+                                        }
+                                        if (keggId != null && !keggId.isEmpty() && !keggId.equals("-")) {
+                                            db.insertKEGG(compoundId, keggId);
+                                        }
+                                    } else {
+                                        System.out.println("Compound not found in any database for row: " + compoundName);
+                                        break;
                                     }
                                 }
                             }
                         }
-                    }
-
-                    if (compoundId == null) {
-                        compound = PubchemRest.getCompoundFromPCID(pubchemId);
-                        compoundId = compound.getCompound_id();
                     }
 
                     String fullHmdbId = null;
@@ -120,11 +128,10 @@ public class AddChebiAndPathwaysToCSV {
                     }
                     try {
                         chebiId = db.getChebiIdFromCompoundId(compoundId);
-                    }
-                    catch(CompoundNotFoundException cnfe)
-                    {
+                    } catch (CompoundNotFoundException cnfe) {
                         Identifier identifiers = compound.getIdentifiersOwn();
-                        //ChebiDatabase.getChebiFromIdentifiers(identifiers);
+                        double similarity = 0.95d;
+                        chebiId = ChebiDatabase.getChebiFromSmiles(identifiers.getSmiles(), similarity);
                         db.insertChebi(compoundId, chebiId);
                     }
 

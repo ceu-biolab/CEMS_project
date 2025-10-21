@@ -166,7 +166,9 @@ public class PubchemRest {
      * @throws IOException
      * @throws NullPointerException
      */
-    public static Compound getCompoundFromInChIPC(String inchi, Integer compound_id, String name, String casId, Integer cembioId) throws IOException, NullPointerException {
+    public static Compound getCompoundFromInChIPC(String inchi, Integer compound_id, String name, String casId,
+                                                  Integer cembioId)
+            throws IOException, NullPointerException {
         Content content = Request.post("https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/inchi/property/IUPACName,MonoisotopicMass,inchi,InChIKey,SMILES,MolecularFormula,XLogP/JSON").
                 bodyForm(Form.form().add("inchi", inchi).build())
                 .execute().returnContent();
