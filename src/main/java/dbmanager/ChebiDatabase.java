@@ -11,6 +11,8 @@ package dbmanager;
  */
 
 import cems_project.Identifier;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import exceptions.ChebiException;
@@ -19,11 +21,15 @@ import org.apache.hc.client5.http.fluent.Request;
 import org.apache.hc.core5.util.Timeout;
 
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Locale;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static constants.Constants.CHEBI_COMPOUND_ENDPOINT;
+import static constants.Constants.CHEBI_STRUCTURE_SEARCH_ENDPOINT;
 
 /**
  * Class to perform queries against the chebi Database to retrieve information
@@ -57,7 +63,6 @@ public abstract class ChebiDatabase {
 
         String json = content.asString();
 
-        // Parse JSON
         JsonObject obj = JsonParser.parseString(json).getAsJsonObject();
         JsonObject structure = obj.getAsJsonObject("default_structure");
 
@@ -65,7 +70,6 @@ public abstract class ChebiDatabase {
             throw new ChebiException("No default_structure found for ChEBI ID " + chebiId);
         }
 
-        // Extract fields
         String smiles = getOrNull(structure, "smiles");
         String inchi = getOrNull(structure, "standard_inchi");
         String inchiKey = getOrNull(structure, "standard_inchi_key");
@@ -82,6 +86,11 @@ public abstract class ChebiDatabase {
      * @throws ChebiException
      * @throws IOException
      */
+    public static String getInChIKeyFromChebID(int chebiId) throws ChebiException, IOException {
+        Identifier identifier = ChebiDatabase.getIdentifierFromChebiID(chebiId);
+        return identifier.getInchi_key();
+    }
+
     public static String getAsciiName(int chebiId) throws ChebiException, IOException {
         String chebi_endpoint = CHEBI_COMPOUND_ENDPOINT + chebiId;
 
@@ -98,111 +107,162 @@ public abstract class ChebiDatabase {
         String ascii_name = obj.get("ascii_name").getAsString();
 
         if (ascii_name == null) {
-            throw new ChebiException("No compound found found for ChEBI ID " + chebiId);
+            throw new ChebiException("No compound found for ChEBI ID " + chebiId);
         }
+
         return ascii_name;
     }
 
-//    public static String getInChIKeyFromChebID(int chebId) throws ChebiWebServiceFault_Exception {
-//        try {
-//            Entity entity;
-//            entity = client.getCompleteEntity("CHEBI:" + Integer.toString(chebId));
-//            return entity.getInchiKey();
-//        } catch (ChebiWebServiceFault_Exception ex) {
-//            Logger.getLogger(ChebiDatabase.class.getName()).log(Level.SEVERE, null, ex);
-//            return null;
-//        }
-//    }
-//
-//    public static String getFormulaFromChebID(int chebId) throws ChebiException, ChebiWebServiceFault_Exception {
-//        try {
-//            Entity entity;
-//            entity = client.getCompleteEntity("CHEBI:" + Integer.toString(chebId));
-//            List<DataItem> formulas = entity.getFormulae();
-//            if (formulas.size() == 1) {
-//                return formulas.get(0).getData();
-//            } else if (formulas.isEmpty()) {
-//                throw new ChebiException("Formula not available in chebi");
-//            } else {
-//                System.out.println("chebId: " + chebId);
-//                for (DataItem formula : formulas) {
-//                    System.out.println("DATA:" + formula.getData());
-//                    System.out.println("SOURCE:" + formula.getSource());
-//                    System.out.println("Type:" + formula.getType());
-//                }
-//                return formulas.get(0).getData();
-//            }
-//        } catch (ChebiWebServiceFault_Exception ex) {
-//            Logger.getLogger(ChebiDatabase.class.getName()).log(Level.SEVERE, null, ex);
-//            throw ex;
-//        }
-//    }
-//
-//    public static Double getMonoIsotopicMassFromChebID(int chebId) throws ChebiWebServiceFault_Exception {
-//        try {
-//            Entity entity;
-//            entity = client.getCompleteEntity("CHEBI:" + Integer.toString(chebId));
-//            Double mass = Double.parseDouble(entity.getMonoisotopicMass());
-//            return mass;
-//        } catch (ChebiWebServiceFault_Exception ex) {
-//            Logger.getLogger(ChebiDatabase.class.getName()).log(Level.SEVERE, null, ex);
-//            return null;
-//        }
-//    }
-//
-//    public static String getHMDBLink(int chebId) {
-//        try {
-//            Entity entity;
-//            entity = client.getCompleteEntity("CHEBI:" + Integer.toString(chebId));
-//            List<DataItem> synonyms = entity.getDatabaseLinks();
-//            for (DataItem synonim : synonyms) {
-//                System.out.println("DATA:" + synonim.getData());
-//                System.out.println("SOURCE:" + synonim.getSource());
-//                System.out.println("Type:" + synonim.getType());
-//                if (synonim.getType().equals("HMDB accession")) {
-//                    return synonim.getData();
-//                }
-//            }
-//        } catch (ChebiWebServiceFault_Exception ex) {
-//            Logger.getLogger(ChebiDatabase.class.getName()).log(Level.SEVERE, null, ex);
-//            return null;
-//        }
-//        return null;
-//    }
-//
-//    /**
-//     *
-//     * @param identifiers
-//     * @return chebId if it was found.
-//     * @throws exceptions.ChebiException
-//     */
-//    public static Integer getChebiFromIdentifiers(Identifier identifiers) throws ChebiException {
-//        Integer chebiIdResult = null;
-//        String smiles = identifiers.getSmiles();
-//        String inchi_key = identifiers.getInchi_key();
-//        String inchi = identifiers.getInchi();
-//        if (smiles == null || inchi_key == null) {
-//            throw new ChebiException("Wrong identifier sent to chebi");
-//        }
-//        try {
-//            LiteEntityList querySMILESResult = client.getStructureSearch(smiles, StructureType.SMILES, StructureSearchCategory.SIMILARITY, 100, 0.90F);
-//            List<LiteEntity> querySMILESList = querySMILESResult.getListElement();
-//            for (LiteEntity chebiEntity : querySMILESList) {
-//                String chebId = chebiEntity.getChebiId();
-//                Entity fullEntity;
-//                fullEntity = client.getCompleteEntity(chebId);
-//                String inchi_key_from_chebi = fullEntity.getInchiKey();
-//                String inchi__from_chebi = fullEntity.getInchi();
-//                if ((inchi_key_from_chebi != null && inchi_key_from_chebi.equals(inchi_key)) || (inchi__from_chebi != null && inchi__from_chebi.equals(inchi))) {
-//                    return ChebiDatabase.getChebiNumber(chebId);
-//                }
-//            }
-//        } catch (ChebiWebServiceFault_Exception ex) {
-//            System.out.println("CHEBI STRUCTURE WRONG: " + identifiers);
-//            Logger.getLogger(ChebiDatabase.class.getName()).log(Level.SEVERE, null, ex);
-//        }
-//        throw new ChebiException("ChebId not found");
-//    }
+    /**
+     * Get the formula from chebi ID using the chebi REST API
+     * @param chebiId
+     * @return
+     * @throws ChebiException
+     * @throws IOException
+     */
+    public static String getFormulaFromChebID(int chebiId) throws ChebiException, IOException {
+        String chebi_endpoint = CHEBI_COMPOUND_ENDPOINT + chebiId;
+
+        Content content = Request.get(chebi_endpoint)
+                .connectTimeout(Timeout.ofMilliseconds(5000))
+                .responseTimeout(Timeout.ofMilliseconds(5000))
+                .execute()
+                .returnContent();
+
+        String json = content.asString();
+
+        // Parse JSON
+        JsonObject obj = JsonParser.parseString(json).getAsJsonObject();
+        JsonObject chemicalProperties = obj.getAsJsonObject("chemical_data");
+
+        if (chemicalProperties == null) {
+            throw new ChebiException("No compound found for ChEBI ID " + chebiId);
+        }
+
+        String formula = getOrNull(chemicalProperties, "formula");
+        return formula;
+    }
+
+    /**
+     * Get the monoisotopic mass from chebi ID using the chebi REST API
+     * @param chebiId
+     * @return
+     * @throws ChebiException
+     * @throws IOException
+     */
+    public static Double getMonoIsotopicMassFromChebID(int chebiId) throws ChebiException, IOException {
+        String chebi_endpoint = CHEBI_COMPOUND_ENDPOINT + chebiId;
+
+        Content content = Request.get(chebi_endpoint)
+                .connectTimeout(Timeout.ofMilliseconds(5000))
+                .responseTimeout(Timeout.ofMilliseconds(5000))
+                .execute()
+                .returnContent();
+
+        String json = content.asString();
+
+        // Parse JSON
+        JsonObject obj = JsonParser.parseString(json).getAsJsonObject();
+        JsonObject chemicalProperties = obj.getAsJsonObject("chemical_data");
+
+        if (chemicalProperties == null) {
+            throw new ChebiException("No compound found for ChEBI ID " + chebiId);
+        }
+
+        String monoisotopicMassString = getOrNull(chemicalProperties, "monoisotopic_mass");
+        Double monoisotopicMass = monoisotopicMassString != null ? Double.parseDouble(monoisotopicMassString) : null;
+        return monoisotopicMass;
+    }
+
+    /**
+     * Get the HMDB link from chebi ID using the chebi REST API
+     * @param chebiId
+     * @return
+     * @throws ChebiException
+     * @throws IOException
+     */
+    public static String getHMDBLink(int chebiId) throws ChebiException, IOException{
+        String chebi_endpoint = CHEBI_COMPOUND_ENDPOINT + chebiId;
+
+        Content content = Request.get(chebi_endpoint)
+                .connectTimeout(Timeout.ofMilliseconds(5000))
+                .responseTimeout(Timeout.ofMilliseconds(5000))
+                .execute()
+                .returnContent();
+
+        String json = content.asString();
+
+        // Parse JSON
+        JsonObject obj = JsonParser.parseString(json).getAsJsonObject();
+        JsonObject databaseAccessions = obj.getAsJsonObject("database_accessions");
+
+        if (databaseAccessions == null) {
+            throw new ChebiException("No compound found for ChEBI ID " + chebiId);
+        }
+        JsonArray manualRefs = databaseAccessions.getAsJsonArray("MANUAL_X_REF");
+        if (manualRefs == null) {
+            throw new ChebiException("No MANUAL_X_REF section found for ChEBI ID " + chebiId);
+        }
+        for (JsonElement elem : manualRefs) {
+            JsonObject ref = elem.getAsJsonObject();
+            String sourceName = ref.get("source_name").getAsString();
+
+            if ("HMDB".equalsIgnoreCase(sourceName)) {
+                return ref.get("accession_number").getAsString();
+            }
+        }
+        throw new ChebiException("No HMDB found found for ChEBI ID " + chebiId);
+    }
+
+
+    /**
+     * Calls the ChEBI REST API similarity search and returns the first matching chebi_accession.
+     *
+     * @param smiles     SMILES string of the molecule
+     * @param similarity similarity threshold (e.g., 0.95)
+     * @return ChEBI ID (e.g. "CHEBI:19543") if found, otherwise null
+     * @throws IOException          if network or parsing fails
+     * @throws ChebiException if no compound is found
+     */
+    public static int getChebiFromSmiles(String smiles, double similarity)
+            throws ChebiException, IOException {
+        // --- Fixed parameters ---
+        boolean threeStarOnly = true;
+        int page = 1;
+        int size = 15;
+        boolean download = false;
+
+        String baseUrl = CHEBI_STRUCTURE_SEARCH_ENDPOINT;
+        String encodedSmiles = URLEncoder.encode(smiles, StandardCharsets.UTF_8);
+        String chebi_endpoint = String.format(Locale.US,
+                "%s?smiles=%s&search_type=similarity&similarity=%.2f&three_star_only=%b&page=%d&size=%d&download=%b",
+                baseUrl, encodedSmiles, similarity, threeStarOnly, page, size, download);
+
+        Content content = Request.get(chebi_endpoint)
+                .connectTimeout(Timeout.ofMilliseconds(5000))
+                .responseTimeout(Timeout.ofMilliseconds(5000))
+                .execute()
+                .returnContent();
+
+        String json = content.asString();
+
+        JsonObject root = JsonParser.parseString(json).getAsJsonObject();
+        JsonArray results = root.getAsJsonArray("results");
+
+        if (results == null || results.size() == 0) {
+            throw new ChebiException("Identifier not found in ChEBI for SMILES: " + smiles);
+        }
+
+        // Get the first result from the similarity search
+        JsonObject firstResult = results.get(0).getAsJsonObject();
+        JsonObject source = firstResult.getAsJsonObject("_source");
+        if (source == null || !source.has("chebi_accession")) {
+            throw new ChebiException("Identifier not found in ChEBI for SMILES: " + smiles);
+        }
+
+        return ChebiDatabase.getChebiNumber(source.get("chebi_accession").getAsString());
+
+    }
 
     public static Integer getChebiNumber(String chebiId) {
         return Integer.parseInt(chebiId.replaceAll("CHEBI:", ""));

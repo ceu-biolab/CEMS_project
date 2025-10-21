@@ -36,11 +36,6 @@ class ChebiDatabaseTest {
     }
 
     @Test
-    void getIdentfiersFromChebiId() {
-        fail("Prototype");
-    }
-
-    @Test
     void getAsciiName() {
         try {
             String expResult = "(R)-noradrenaline";
@@ -57,31 +52,84 @@ class ChebiDatabaseTest {
 
     @Test
     void getInChIKeyFromChebID() {
-        fail("Prototype");
+        try {
+            String expResult = "SFLSHLFXELFNJZ-QMMMGPOBSA-N";
+            String result = ChebiDatabase.getInChIKeyFromChebID(1);
+            assertEquals(expResult, result);
+        }
+        catch(ChebiException ex) {
+            fail("Check the exception " + ex);
+        }
+        catch (IOException ex) {
+            fail("Check the exception " + ex);
+        }
     }
 
     @Test
     void getFormulaFromChebID() {
-        fail("Prototype");
+        try {
+            String expResult = "C8H11NO3";
+            String result = ChebiDatabase.getFormulaFromChebID(1);
+            assertEquals(expResult, result);
+        }
+        catch(ChebiException ex) {
+            fail("Check the exception " + ex);
+        }
+        catch (IOException ex) {
+            fail("Check the exception " + ex);
+        }
     }
 
     @Test
     void getMonoIsotopicMassFromChebID() {
-        fail("Prototype");
+        try {
+            double expResult = 169.07389;
+            Double result = ChebiDatabase.getMonoIsotopicMassFromChebID(1);
+            assertEquals(expResult, result, 0.001d);
+        }
+        catch(ChebiException ex) {
+            fail("Check the exception " + ex);
+        }
+        catch (IOException ex) {
+            fail("Check the exception " + ex);
+        }
     }
 
     @Test
     void getHMDBLink() {
-        fail("Prototype");
+        try {
+            String expResult = "HMDB0000216";
+            String result = ChebiDatabase.getHMDBLink(1);
+            assertEquals(expResult, result);
+        }
+        catch(ChebiException ex) {
+            fail("Check the exception " + ex);
+        }
+        catch (IOException ex) {
+            fail("Check the exception " + ex);
+        }
     }
 
     @Test
-    void getChebiFromIdentifiers() {
-        fail("Prototype");
+    void getChebiFromSmiles() {
+        try {
+            int expResult = 18357;
+            int result = ChebiDatabase.getChebiFromSmiles("NC[C@H](O)c1ccc(O)c(O)c1",0.95d);
+            assertEquals(expResult, result);
+        }
+        catch(ChebiException ex) {
+            fail("Check the exception " + ex);
+        }
+        catch (IOException ex) {
+            fail("Check the exception " + ex);
+        }
     }
 
     @Test
     void getChebiNumber() {
-        fail("Prototype");
+            int expResult = 1;
+            int result = ChebiDatabase.getChebiNumber("CHEBI:1");
+            assertEquals(expResult, result);
+
     }
 }

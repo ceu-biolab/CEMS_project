@@ -42,6 +42,7 @@ public class Constants {
     public static final String PUBCHEM_ENDPOINT_INCHI_TO_INCHIKEY_START = "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/inchi/";
     public static final String PUBCHEM_ENDPOINT_INCHI_TO_INCHIKEY_END = "/property/InChIKey/JSON";
     public static final String CHEBI_COMPOUND_ENDPOINT = "https://www.ebi.ac.uk/chebi/backend/api/public/compound/";
+    public static final String CHEBI_STRUCTURE_SEARCH_ENDPOINT = "https://www.ebi.ac.uk/chebi/backend/api/public/structure_search/";
 
     public static final String CAS_ONLINE_PATH = "https://commonchemistry.cas.org/detail?cas_rn=";
 
