@@ -9,24 +9,23 @@ import com.opencsv.CSVWriter;
 import dbmanager.ChebiDatabase;
 import dbmanager.DBManager;
 import dbmanager.PubchemRest;
+import exceptions.ChebiException;
 import exceptions.CompoundNotFoundException;
 
 import java.io.FileReader;
 import java.io.FileWriter;
-import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Arrays;
 
-public class AddChebiAndPathwaysToCSV {
+public class AddPathwaysToCompounds {
 
     private static final String DB_URL = "jdbc:mysql://localhost:3306/compounds";
     private static final String USER = "alberto";
     private static final String PASS = "alberto";
 
     public static void main(String[] args) {
-        String inputCsv = "/home/ceu/Escritorio/cmm_temporal/chebi_ids2.csv";
-        String outputCsv = "/home/ceu/Escritorio/cmm_temporal/chebi_ids_with_pathways.csv";
+        String inputCsv = "/home/ceu/Escritorio/cmm_temporal/compound_chebis.csv";
+        String outputCsv = "/home/ceu/Escritorio/cmm_temporal/compound_chebis_with_pathways.csv";
         DBManager db = new DBManager();
         db.connectToDB(DB_URL, USER, PASS);
 
@@ -64,9 +63,6 @@ public class AddChebiAndPathwaysToCSV {
 
                 Integer compoundId = 0;
                 Integer chebiId = null;
-                if (pubchemId == 42953) {
-                    System.out.println("here");
-                }
                 try {
                     // 🔍 1️⃣ Try HMDB → PubChem → KEGG
                     Compound compound = null;
@@ -131,8 +127,13 @@ public class AddChebiAndPathwaysToCSV {
                     } catch (CompoundNotFoundException cnfe) {
                         Identifier identifiers = compound.getIdentifiersOwn();
                         double similarity = 0.95d;
-                        chebiId = ChebiDatabase.getChebiFromSmiles(identifiers.getSmiles(), similarity);
-                        db.insertChebi(compoundId, chebiId);
+                        try {
+                            chebiId = ChebiDatabase.getChebiFromSmiles(identifiers.getSmiles(), similarity);
+                            db.insertChebi(compoundId, chebiId);
+                        }
+                        catch (ChebiException chebiException) {
+                            System.out.println("Chebi not found for compound " + compoundName + " with SMILES " + identifiers.getSmiles());
+                        }
                     }
 
 
